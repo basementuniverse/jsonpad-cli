@@ -22,17 +22,46 @@ npm install --save-dev @basementuniverse/jsonpad-cli
 
 ## Authentication
 
-The tool reads an API token from the `JSONPAD_TOKEN` environment variable.
-Create a token in the JSONPad dashboard.
+Every command needs an API token, which you can create in the JSONPad
+dashboard. For schema commands, the token needs the `sync-schema` permission,
+plus permission for each change a sync makes.
+
+In CI and scripts, set the `JSONPAD_TOKEN` environment variable:
 
 ```bash
 export JSONPAD_TOKEN=<your token>
 ```
 
-For schema commands, the token needs the `sync-schema` permission, plus
-permission for each change a sync makes.
+On your own machine, save tokens as profiles instead. The token is asked for
+without being shown, or read from stdin:
 
-Set `JSONPAD_API_URL` to use a different API, e.g. a local server.
+```bash
+jsonpad config set-profile prod
+jsonpad config set-profile local --api-url http://localhost:3000
+
+# Check which token you're using, what it can do, and how much quota is left
+jsonpad whoami
+jsonpad whoami --profile local
+```
+
+The first profile you add is the default. Profiles are saved in a config file
+that only you can read (`jsonpad config path` shows where; set
+`JSONPAD_CONFIG` to use a different file).
+
+```bash
+jsonpad config list             # tokens are masked
+jsonpad config use local        # change the default profile
+jsonpad config remove local
+```
+
+Which token a command uses, in order:
+
+1. a profile chosen with `--profile` or `JSONPAD_PROFILE`
+2. `JSONPAD_TOKEN`
+3. the default profile
+
+The API URL comes from `--api-url`, then the profile's URL, then
+`JSONPAD_API_URL`, then `https://api.jsonpad.io`.
 
 ## Usage
 
@@ -56,6 +85,9 @@ jsonpad move-lists --from-scope recipe-app --to cookbook-app
 
 # Rebuild an index whose last build failed
 jsonpad rebuild-index recipes title --wait
+
+# Show the token, its plan's limits and this month's usage
+jsonpad whoami
 ```
 
 The schema commands are also available as `jsonpad schema sync`,
@@ -63,6 +95,41 @@ The schema commands are also available as `jsonpad schema sync`,
 
 Run `jsonpad --help`, or `jsonpad <command> --help`, for every option. The full
 command reference is in [REFERENCE.md](REFERENCE.md).
+
+### Output
+
+Commands that output records (`whoami` and `config list` so far) print a table
+in a terminal, and JSON when their output is piped or redirected, so
+`jsonpad whoami | jq .usage` works. Choose a format with `--output` (`-o`):
+
+| Format   | Output                                                   |
+| -------- | -------------------------------------------------------- |
+| `table`  | Columns, for reading                                     |
+| `json`   | JSON (also `--json`)                                     |
+| `ndjson` | One JSON record per line                                 |
+| `id`     | One id per line, e.g. for `xargs` (also `--quiet`, `-q`) |
+
+Data goes to stdout. Messages, warnings and questions go to stderr.
+
+The schema commands keep their own output, and their `--json` option.
+
+### Confirmations
+
+Commands that delete something ask first. Where they can't ask (e.g. in a
+script or CI), they refuse with exit code `5` unless you pass `--yes`.
+
+### Rate limits
+
+A request that's rate limited is retried after the delay the API asks for, up
+to 5 times. A request refused because the monthly quota has run out isn't
+retried.
+
+`--verbose` (`-V`) logs each request to stderr, and afterwards, the rate limit
+and quota left:
+
+```bash
+jsonpad whoami --verbose
+```
 
 ## Continuous integration
 
@@ -75,15 +142,22 @@ command reference is in [REFERENCE.md](REFERENCE.md).
 
 ## Exit codes
 
-| Code | Meaning                                                        |
-| ---- | -------------------------------------------------------------- |
-| `0`  | Success                                                        |
-| `1`  | Error, including a sync refused because a change has errors    |
-| `2`  | A sync was refused because it needs `--allow-rebuild`          |
-| `3`  | An index build failed, or didn't finish in time, while waiting |
-| `4`  | A sync was refused because it needs `--allow-destructive`      |
+| Code | Meaning                                                                 |
+| ---- | ----------------------------------------------------------------------- |
+| `0`  | Success                                                                 |
+| `1`  | Error, including a sync refused because a change has errors             |
+| `2`  | A sync was refused because it needs `--allow-rebuild`                   |
+| `3`  | An index build failed, or didn't finish in time, while waiting          |
+| `4`  | A sync was refused because it needs `--allow-destructive`               |
+| `5`  | Refused because it needs confirmation: run again with `--yes`           |
+| `6`  | Not found                                                               |
+| `7`  | The token isn't allowed to do this, or isn't valid                      |
+| `8`  | Rate limited (after retrying), or a plan limit or the quota was reached |
 
 A dry run exits the same way the real sync would.
+
+The schema commands (`sync-schema`, `export-schema`, `move-lists`) and
+`rebuild-index` exit with `1` for every API error, as they did in the SDK.
 
 ## Moving from the SDK's `jsonpad` command
 

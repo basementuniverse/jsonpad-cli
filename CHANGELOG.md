@@ -7,6 +7,33 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
+## [Unreleased]
+
+### Added
+
+- Profiles: saved API tokens, so you don't need `JSONPAD_TOKEN` on your own
+  machine. `jsonpad config set-profile`, `use`, `list`, `remove` and `path`
+  manage them, in a config file only you can read. Choose one with
+  `--profile` or `JSONPAD_PROFILE`. `JSONPAD_CONFIG` sets the config file.
+- `jsonpad whoami`, which shows the token you're using, its permissions, its
+  plan's limits and the account's usage this month.
+- `--api-url`, which sets the API's URL for any command.
+- `--verbose` (`-V`), which logs each request to stderr, and the rate limit and
+  quota left after the command.
+- `--output` (`-o`), `--json` and `--quiet` (`-q`) for commands that output
+  records. The default is a table in a terminal, and JSON otherwise.
+- Exit codes `5` (needs confirmation: run again with `--yes`), `6` (not
+  found), `7` (the token isn't allowed, or isn't valid) and `8` (rate limited,
+  or a plan limit or the quota was reached). The schema commands and
+  `rebuild-index` still exit with `1` for every API error.
+
+### Changed
+
+- Rate limited requests are retried, up to 5 times, after the delay the API
+  asks for (at most a minute). This includes the schema commands, which used to
+  fail straight away. A request refused because the monthly quota has run out
+  isn't retried.
+
 ## [1.0.0] - Unreleased
 
 The `jsonpad` command, moved out of `@basementuniverse/jsonpad-sdk` (where

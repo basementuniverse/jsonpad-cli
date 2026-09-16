@@ -13,6 +13,12 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 - [`jsonpad schema sync`](#jsonpad-schema-sync): Create and update lists and indexes to match a schema document
 - [`jsonpad schema export`](#jsonpad-schema-export): Write a schema document for existing lists
 - [`jsonpad schema move`](#jsonpad-schema-move): Move lists (by id or path name) to a scope, or release them from their scope
+- [`jsonpad whoami`](#jsonpad-whoami): Show the token you're using, its plan's limits and usage
+- [`jsonpad config set-profile`](#jsonpad-config-set-profile): Add or update a profile
+- [`jsonpad config use`](#jsonpad-config-use): Choose the default profile
+- [`jsonpad config list`](#jsonpad-config-list): List profiles (tokens are masked)
+- [`jsonpad config remove`](#jsonpad-config-remove): Remove a profile
+- [`jsonpad config path`](#jsonpad-config-path): Show where the config file is (set JSONPAD_CONFIG to use a different file)
 
 ### `jsonpad sync-schema`
 
@@ -102,14 +108,111 @@ The same as [`jsonpad export-schema`](#jsonpad-export-schema), with the same arg
 
 The same as [`jsonpad move-lists`](#jsonpad-move-lists), with the same arguments and options.
 
+### `jsonpad whoami`
+
+Show the token you're using: what it can do, its plan's limits, and the account's usage this month
+
+```
+jsonpad whoami [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad config set-profile`
+
+Add or update a profile. The token is asked for in a terminal, or read from stdin (e.g. from a password manager). The global --api-url option sets the profile's API URL
+
+```
+jsonpad config set-profile [options] <name>
+```
+
+| Argument | Description |
+| --- | --- |
+| `name` | The profile name |
+
+| Option | Description |
+| --- | --- |
+| `--default` | Make this the default profile |
+
+### `jsonpad config use`
+
+Choose the default profile
+
+```
+jsonpad config use [options] <name>
+```
+
+| Argument | Description |
+| --- | --- |
+| `name` | The profile name |
+
+### `jsonpad config list`
+
+List profiles (tokens are masked)
+
+```
+jsonpad config list [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad config remove`
+
+Remove a profile
+
+```
+jsonpad config remove [options] <name>
+```
+
+| Argument | Description |
+| --- | --- |
+| `name` | The profile name |
+
+| Option | Description |
+| --- | --- |
+| `-y, --yes` | Don't ask for confirmation |
+
+### `jsonpad config path`
+
+Show where the config file is (set JSONPAD_CONFIG to use a different file)
+
+```
+jsonpad config path [options]
+```
+
+## Global options
+
+Every command accepts these.
+
+| Option | Description |
+| --- | --- |
+| `-v, --version` | Show the version |
+| `--profile <name>` | Use a saved profile (see jsonpad config) |
+| `--api-url <url>` | The API's URL, e.g. a local server |
+| `-V, --verbose` | Log requests, and the rate limit and quota |
+
 ## Environment
 
 ```
-JSONPAD_TOKEN      The API token to use (required). The token needs the
-                   sync-schema permission for schema commands, plus
-                   permission for each change a sync makes
+JSONPAD_TOKEN      The API token to use, if you don't use a profile. The
+                   token needs the sync-schema permission for schema
+                   commands, plus permission for each change a sync makes
 JSONPAD_API_URL    The API's URL (default https://api.jsonpad.io)
+JSONPAD_PROFILE    The profile to use, like --profile
+JSONPAD_CONFIG     The config file, where profiles are saved (see
+                   jsonpad config path)
 NO_COLOR           Set to turn off coloured output
+
+A profile chosen with --profile or JSONPAD_PROFILE comes first, then
+JSONPAD_TOKEN, then the default profile.
 ```
 
 ## Exit codes
@@ -120,4 +223,12 @@ NO_COLOR           Set to turn off coloured output
 2  A sync was refused because it needs --allow-rebuild
 3  An index build failed, or didn't finish in time, while waiting
 4  A sync was refused because it needs --allow-destructive
+5  Refused because it needs confirmation: run again with --yes
+6  Not found
+7  The token isn't allowed to do this, or isn't valid
+8  Rate limited (after retrying), or a plan limit or the monthly quota was
+   reached
+
+The schema commands and rebuild-index exit with 1 for every API error, as they
+did in @basementuniverse/jsonpad-sdk.
 ```

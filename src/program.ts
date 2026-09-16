@@ -1,10 +1,13 @@
 import { createRequire } from 'node:module';
 import { Command, CommanderError } from 'commander';
+import { describeLimits } from './client.ts';
+import { defineConfig } from './commands/config.ts';
 import { defineRebuildIndex } from './commands/rebuild-index.ts';
 import { defineExportSchema } from './commands/schema/export.ts';
 import { defineMoveLists } from './commands/schema/move.ts';
 import { defineSyncSchema } from './commands/schema/sync.ts';
-import type { Context } from './context.ts';
+import { defineWhoami } from './commands/whoami.ts';
+import type { Context, GlobalOptions } from './context.ts';
 import { CliError, EXIT_ERROR, EXIT_OK } from './errors.ts';
 
 export const { version } = createRequire(import.meta.url)(
@@ -12,18 +15,32 @@ export const { version } = createRequire(import.meta.url)(
 ) as { version: string };
 
 export const ENVIRONMENT_HELP = `Environment:
-  JSONPAD_TOKEN      The API token to use (required). The token needs the
-                     sync-schema permission for schema commands, plus
-                     permission for each change a sync makes
+  JSONPAD_TOKEN      The API token to use, if you don't use a profile. The
+                     token needs the sync-schema permission for schema
+                     commands, plus permission for each change a sync makes
   JSONPAD_API_URL    The API's URL (default https://api.jsonpad.io)
-  NO_COLOR           Set to turn off coloured output`;
+  JSONPAD_PROFILE    The profile to use, like --profile
+  JSONPAD_CONFIG     The config file, where profiles are saved (see
+                     jsonpad config path)
+  NO_COLOR           Set to turn off coloured output
+
+A profile chosen with --profile or JSONPAD_PROFILE comes first, then
+JSONPAD_TOKEN, then the default profile.`;
 
 export const EXIT_CODES_HELP = `Exit codes:
   0  Success
   1  Error, including a sync refused because a change has errors
   2  A sync was refused because it needs --allow-rebuild
   3  An index build failed, or didn't finish in time, while waiting
-  4  A sync was refused because it needs --allow-destructive`;
+  4  A sync was refused because it needs --allow-destructive
+  5  Refused because it needs confirmation: run again with --yes
+  6  Not found
+  7  The token isn't allowed to do this, or isn't valid
+  8  Rate limited (after retrying), or a plan limit or the monthly quota was
+     reached
+
+The schema commands and rebuild-index exit with 1 for every API error, as they
+did in @basementuniverse/jsonpad-sdk.`;
 
 /**
  * The `jsonpad schema ...` commands, and the top-level commands they're the
@@ -45,14 +62,21 @@ export function createProgram(context: Context): Command {
     .version(version, '-v, --version', 'Show the version')
     .helpOption('-h, --help', 'Show help')
     .helpCommand('help [command]', 'Show help for a command')
+    .option('--profile <name>', 'Use a saved profile (see jsonpad config)')
+    .option('--api-url <url>', "The API's URL, e.g. a local server")
+    .option('-V, --verbose', 'Log requests, and the rate limit and quota')
     .showSuggestionAfterError()
+    .configureHelp({ showGlobalOptions: true })
     .exitOverride()
     .configureOutput({
       writeOut: text => void context.stdout.write(text),
       writeErr: text => void context.stderr.write(text),
       outputError: (text, write) => write(context.colours.red(text)),
     })
-    .addHelpText('after', `\n${ENVIRONMENT_HELP}\n\n${EXIT_CODES_HELP}\n`);
+    .addHelpText('after', `\n${ENVIRONMENT_HELP}\n\n${EXIT_CODES_HELP}\n`)
+    .hook('preAction', (_program, command) => {
+      context.globalOptions = command.optsWithGlobals<GlobalOptions>();
+    });
 
   // Subcommands inherit the settings above (output, exit override, help
   // option), as long as they're added after them
@@ -69,6 +93,9 @@ export function createProgram(context: Context): Command {
   defineSyncSchema(schema.command('sync'), context);
   defineExportSchema(schema.command('export'), context);
   defineMoveLists(schema.command('move'), context);
+
+  defineWhoami(program.command('whoami'), context);
+  defineConfig(program.command('config'), context);
 
   return program;
 }
@@ -90,21 +117,33 @@ export async function run(
     await program.parseAsync(argv, { from: 'user' });
     return EXIT_OK;
   } catch (error) {
-    // Commander has already written its own messages, including help and the
-    // version, which also end up here
-    if (error instanceof CommanderError) {
-      return error.exitCode;
-    }
+    return handleError(context, error);
+  } finally {
+    if (context.globalOptions.verbose && context.client) {
+      const limits = describeLimits(context.client.lastResponse);
 
-    const { red } = context.colours;
-    if (error instanceof CliError) {
-      context.error(red(error.message));
-      return error.exitCode;
+      if (limits) {
+        context.error(context.colours.dim(limits));
+      }
     }
-
-    context.error(
-      red(`Error: ${error instanceof Error ? error.stack : String(error)}`)
-    );
-    return EXIT_ERROR;
   }
+}
+
+function handleError(context: Context, error: unknown): number {
+  // Commander has already written its own messages, including help and the
+  // version, which also end up here
+  if (error instanceof CommanderError) {
+    return error.exitCode;
+  }
+
+  const { red } = context.colours;
+  if (error instanceof CliError) {
+    context.error(red(error.message));
+    return error.exitCode;
+  }
+
+  context.error(
+    red(`Error: ${error instanceof Error ? error.stack : String(error)}`)
+  );
+  return EXIT_ERROR;
 }

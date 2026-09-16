@@ -10,6 +10,11 @@ export type ApiRequest = {
   path: string;
   query: Record<string, string[]>;
   body: unknown;
+
+  /**
+   * The API token sent, when the scenario asks for it with recordTokens
+   */
+  token?: string | null;
 };
 
 export type ApiResponse = {
@@ -24,6 +29,7 @@ export type ApiResponse = {
    * Sent as it is, instead of body
    */
   text?: string;
+  headers?: Record<string, string>;
 };
 
 export type Scenario = {
@@ -31,7 +37,8 @@ export type Scenario = {
   args: string[];
 
   /**
-   * Files to create in the working directory before running
+   * Files to create in the working directory before running. {api} and {cwd}
+   * are replaced, as in env
    */
   files?: Record<string, string>;
 
@@ -44,6 +51,22 @@ export type Scenario = {
    * Leave JSONPAD_TOKEN unset
    */
   noToken?: boolean;
+
+  /**
+   * More environment variables. {api} is replaced with the fake API's URL, and
+   * {cwd} with the working directory
+   */
+  env?: Record<string, string>;
+
+  /**
+   * Written to the command's stdin, which is otherwise closed straight away
+   */
+  stdin?: string;
+
+  /**
+   * Record the API token each request sent
+   */
+  recordTokens?: boolean;
 
   /**
    * Respond to a request. The count is how many requests came before it
@@ -96,6 +119,9 @@ export async function runScenario(
       path: url.pathname,
       query: {},
       body: text ? JSON.parse(text) : null,
+      ...(scenario.recordTokens
+        ? { token: (request.headers['x-api-token'] as string) ?? null }
+        : {}),
     };
     for (const [key, value] of url.searchParams) {
       (apiRequest.query[key] ??= []).push(value);
@@ -110,6 +136,7 @@ export async function runScenario(
     response.writeHead(reply.status, {
       'content-type':
         reply.text !== undefined ? 'text/plain' : 'application/json',
+      ...reply.headers,
     });
     response.end(reply.text ?? JSON.stringify(reply.body ?? null));
   });
@@ -117,21 +144,37 @@ export async function runScenario(
   const { port } = server.address() as AddressInfo;
 
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'jsonpad-cli-parity-'));
+  const api = `http://127.0.0.1:${port}`;
+  const placeholders = (text: string) =>
+    text.replaceAll('{api}', api).replaceAll('{cwd}', cwd);
+
   for (const [name, content] of Object.entries(scenario.files ?? {})) {
-    fs.writeFileSync(path.join(cwd, name), content);
+    const file = path.join(cwd, name);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, placeholders(content), { mode: 0o600 });
   }
 
   try {
-    const child = spawn(process.execPath, [bin, ...args], {
+    const child = spawn(process.execPath, [bin, ...args.map(placeholders)], {
       cwd,
       env: {
         PATH: process.env.PATH,
+        // Keep the real user's config and home directory out of it
+        HOME: cwd,
+        JSONPAD_CONFIG: path.join(cwd, '.jsonpad', 'config.json'),
         ...(scenario.noToken ? {} : { JSONPAD_TOKEN: 'test-token' }),
-        JSONPAD_API_URL: `http://127.0.0.1:${port}`,
+        JSONPAD_API_URL: api,
         // Keeps the legacy command's deprecation notice out of recordings
         JSONPAD_NO_DEPRECATION: '1',
+        ...Object.fromEntries(
+          Object.entries(scenario.env ?? {}).map(([name, value]) => [
+            name,
+            placeholders(value),
+          ])
+        ),
       },
     });
+    child.stdin.end(scenario.stdin ?? '');
 
     let stdout = '';
     let stderr = '';
@@ -147,7 +190,22 @@ export async function runScenario(
       files[name] = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
     }
 
-    return { exitCode, stdout, stderr, requests, files };
+    // So that results can be compared between runs
+    const normalise = (text: string) =>
+      text.replaceAll(api, '{api}').replaceAll(cwd, '{cwd}');
+
+    return {
+      exitCode,
+      stdout: normalise(stdout),
+      stderr: normalise(stderr),
+      requests,
+      files: Object.fromEntries(
+        Object.entries(files).map(([name, text]) => [
+          name,
+          text === null ? null : normalise(text),
+        ])
+      ),
+    };
   } finally {
     server.close();
     fs.rmSync(cwd, { recursive: true, force: true });

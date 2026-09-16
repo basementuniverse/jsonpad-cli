@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CliError, describeApiError, EXIT_ERROR } from '../src/errors.ts';
+import {
+  apiError,
+  CliError,
+  describeApiError,
+  EXIT_ERROR,
+  EXIT_LIMIT_REACHED,
+  EXIT_NOT_FOUND,
+  EXIT_PERMISSION_DENIED,
+} from '../src/errors.ts';
 import { parseTimeout } from '../src/indexes.ts';
 import { JSONPadError } from '../src/sdk.ts';
 
@@ -50,4 +58,52 @@ test('parseTimeout reads seconds, defaulting to 600', () => {
   for (const value of ['0', '-1', 'soon', 'Infinity']) {
     assert.throws(() => parseTimeout(value), CliError);
   }
+});
+
+test('apiError maps API errors to exit codes', () => {
+  const error = (status: number, name = 'SOMETHING') =>
+    new JSONPadError(
+      status,
+      JSON.stringify({ name, code: 1, message: `${name} happened` }),
+      { ...meta, status }
+    );
+
+  for (const [status, name, code] of [
+    [404, 'LIST_NOT_FOUND', EXIT_NOT_FOUND],
+    [401, 'USER_NOT_AUTHENTICATED', EXIT_PERMISSION_DENIED],
+    [403, 'TOKEN_PERMISSION_DENIED', EXIT_PERMISSION_DENIED],
+    [403, 'MAX_LISTS_EXCEEDED', EXIT_LIMIT_REACHED],
+    [403, 'STORAGE_LIMIT_EXCEEDED', EXIT_LIMIT_REACHED],
+    [429, 'RATE_LIMIT_EXCEEDED', EXIT_LIMIT_REACHED],
+    [429, 'QUOTA_EXCEEDED', EXIT_LIMIT_REACHED],
+    [409, 'INDEX_BUILDING', EXIT_ERROR],
+    [500, 'INTERNAL', EXIT_ERROR],
+  ] as const) {
+    const mapped = apiError(error(status, name));
+
+    assert.equal(mapped.exitCode, code, `${status} ${name}`);
+    assert.equal(mapped.message, `${name} happened`);
+  }
+});
+
+test("apiError says which URL it couldn't connect to", () => {
+  const error = new TypeError('fetch failed', {
+    cause: Object.assign(new Error('connect ECONNREFUSED'), {
+      code: 'ECONNREFUSED',
+    }),
+  });
+
+  assert.deepEqual(
+    [
+      apiError(error, 'http://localhost:3000').message,
+      apiError(error, 'http://localhost:3000').exitCode,
+    ],
+    ["Can't connect to http://localhost:3000 (ECONNREFUSED)", EXIT_ERROR]
+  );
+});
+
+test('apiError passes CliErrors through', () => {
+  const error = new CliError('nope', 5);
+
+  assert.equal(apiError(error), error);
 });

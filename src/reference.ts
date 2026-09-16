@@ -1,4 +1,4 @@
-import type { Command } from 'commander';
+import type { Command, Option } from 'commander';
 import type { Context } from './context.ts';
 import {
   createProgram,
@@ -66,13 +66,35 @@ function describeCommand(command: Command): string {
 
   const options = command.options.filter(option => option.long !== '--help');
   if (options.length > 0) {
-    lines.push('', '| Option | Description |', '| --- | --- |');
-    for (const option of options) {
-      lines.push(`| \`${option.flags}\` | ${escapeCell(option.description)} |`);
-    }
+    lines.push('', ...optionsTable(options));
   }
 
   return lines.join('\n');
+}
+
+function optionsTable(options: readonly Option[]): string[] {
+  return [
+    '| Option | Description |',
+    '| --- | --- |',
+    ...options.map(option => {
+      const choices = option.argChoices
+        ? ` (one of: ${option.argChoices.join(', ')})`
+        : '';
+
+      return `| \`${option.flags}\` | ${escapeCell(option.description)}${choices} |`;
+    }),
+  ];
+}
+
+/**
+ * Help text with its heading removed and its indentation undone
+ */
+function helpSection(help: string): string {
+  return help
+    .split('\n')
+    .slice(1)
+    .map(line => line.replace(/^  /, ''))
+    .join('\n');
 }
 
 function commandsIn(command: Command): Command[] {
@@ -99,26 +121,26 @@ export function generateReference(context: Context): string {
     '',
     ...commands.map(
       command =>
-        `- [\`${fullName(command)}\`](#${anchor(fullName(command))}): ${command.description()}`
+        `- [\`${fullName(command)}\`](#${anchor(fullName(command))}): ${command.summary() || command.description()}`
     ),
     '',
     ...commands.flatMap(command => [describeCommand(command), '']),
+    '## Global options',
+    '',
+    'Every command accepts these.',
+    '',
+    ...optionsTable(program.options.filter(option => option.long !== '--help')),
+    '',
     '## Environment',
     '',
     '```',
-    ENVIRONMENT_HELP.split('\n')
-      .slice(1)
-      .map(line => line.slice(2))
-      .join('\n'),
+    helpSection(ENVIRONMENT_HELP),
     '```',
     '',
     '## Exit codes',
     '',
     '```',
-    EXIT_CODES_HELP.split('\n')
-      .slice(1)
-      .map(line => line.slice(2))
-      .join('\n'),
+    helpSection(EXIT_CODES_HELP),
     '```',
   ].join('\n')}\n`;
 }
