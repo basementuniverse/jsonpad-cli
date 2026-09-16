@@ -92,18 +92,25 @@ function fakeClient(errors: unknown[]) {
 }
 
 describe('createRetryingClient', () => {
-  test('retries a rate limited request until it succeeds, saying so on stderr', async () => {
+  test('retries a rate limited request until it succeeds, mentioning long waits', async () => {
     const context = createTestContext();
-    const fake = fakeClient([rateLimited(1), rateLimited(3)]);
+    const fake = fakeClient([rateLimited(1), rateLimited(5)]);
     const client = createRetryingClient(context, fake as unknown as JSONPad);
 
     assert.deepEqual(await client.fetchList('recipes'), { id: 'recipes' });
     assert.equal(fake.calls, 3);
-    assert.deepEqual(context.sleeps, [1000, 3000]);
-    assert.equal(
-      context.output.stderr,
-      'Rate limited, retrying in 1s...\nRate limited, retrying in 3s...\n'
-    );
+    assert.deepEqual(context.sleeps, [1000, 5000]);
+    assert.equal(context.output.stderr, 'Rate limited, retrying in 5s...\n');
+  });
+
+  test('mentions every retry with --verbose', async () => {
+    const context = createTestContext();
+    context.globalOptions = { verbose: true };
+    const fake = fakeClient([rateLimited(1)]);
+    const client = createRetryingClient(context, fake as unknown as JSONPad);
+
+    await client.fetchList('recipes');
+    assert.equal(context.output.stderr, 'Rate limited, retrying in 1s...\n');
   });
 
   test('gives up after the last retry, with the last error', async () => {

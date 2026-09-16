@@ -13,6 +13,33 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 - [`jsonpad schema sync`](#jsonpad-schema-sync): Create and update lists and indexes to match a schema document
 - [`jsonpad schema export`](#jsonpad-schema-export): Write a schema document for existing lists
 - [`jsonpad schema move`](#jsonpad-schema-move): Move lists (by id or path name) to a scope, or release them from their scope
+- [`jsonpad lists list`](#jsonpad-lists-list): List lists (the default when no command is given)
+- [`jsonpad lists get`](#jsonpad-lists-get): Show a list
+- [`jsonpad lists create`](#jsonpad-lists-create): Create a list
+- [`jsonpad lists update`](#jsonpad-lists-update): Change a list. Fields that aren't given are left as they are
+- [`jsonpad lists delete`](#jsonpad-lists-delete): Delete a list. Its items and indexes are deleted in the background
+- [`jsonpad indexes list`](#jsonpad-indexes-list): List a list's indexes (the default when no command is given)
+- [`jsonpad indexes get`](#jsonpad-indexes-get): Show an index
+- [`jsonpad indexes create`](#jsonpad-indexes-create): Create an index. It builds in the background, and until it has built it can't be used to filter, order or search items
+- [`jsonpad indexes update`](#jsonpad-indexes-update): Change an index. Fields that aren't given are left as they are. Changing the pointer rebuilds the index
+- [`jsonpad indexes delete`](#jsonpad-indexes-delete): Delete an index
+- [`jsonpad indexes rebuild`](#jsonpad-indexes-rebuild): Rebuild an index whose last build failed, once the problem has been fixed
+- [`jsonpad indexes wait`](#jsonpad-indexes-wait): Wait for an index to finish building
+- [`jsonpad items list`](#jsonpad-items-list): List a list's items (the default when no command is given)
+- [`jsonpad items get`](#jsonpad-items-get): Show an item, with its data
+- [`jsonpad items create`](#jsonpad-items-create): Create an item
+- [`jsonpad items update`](#jsonpad-items-update): Change an item. --data replaces all of its data; fields that aren't given are left as they are
+- [`jsonpad items delete`](#jsonpad-items-delete): Delete an item. It can be restored from its events
+- [`jsonpad items data get`](#jsonpad-items-data-get): Output an item's data, or part of it. Without an item, output the data of a page of the list's items
+- [`jsonpad items data set`](#jsonpad-items-data-set): Merge data into an item's data, or into part of it. Objects are merged, and arrays are added to. Outputs the changed item
+- [`jsonpad items data replace`](#jsonpad-items-data-replace): Replace an item's data, or part of it. Outputs the changed item
+- [`jsonpad items data patch`](#jsonpad-items-data-patch): Change an item's data, or part of it, with a JSON patch (RFC 6902). Outputs the changed item
+- [`jsonpad items data delete`](#jsonpad-items-data-delete): Delete part of an item's data. Outputs the changed item
+- [`jsonpad identities list`](#jsonpad-identities-list): List identities (the default when no command is given)
+- [`jsonpad identities get`](#jsonpad-identities-get): Show an identity
+- [`jsonpad identities create`](#jsonpad-identities-create): Create an identity. The password is asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD
+- [`jsonpad identities update`](#jsonpad-identities-update): Change an identity. Fields that aren't given are left as they are
+- [`jsonpad identities delete`](#jsonpad-identities-delete): Delete an identity
 - [`jsonpad whoami`](#jsonpad-whoami): Show the token you're using, its plan's limits and usage
 - [`jsonpad config set-profile`](#jsonpad-config-set-profile): Add or update a profile
 - [`jsonpad config use`](#jsonpad-config-use): Choose the default profile
@@ -107,6 +134,637 @@ The same as [`jsonpad export-schema`](#jsonpad-export-schema), with the same arg
 ### `jsonpad schema move`
 
 The same as [`jsonpad move-lists`](#jsonpad-move-lists), with the same arguments and options.
+
+### `jsonpad lists list`
+
+List lists (the default when no command is given)
+
+```
+jsonpad lists list [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `--name <name>` | Only lists whose name contains this |
+| `--path-name <path name>` | Only lists whose path name contains this |
+| `--tagged <tags>` | Only those with one of these comma-separated tags (repeat the option to require every group) |
+| `--pinned` | Only pinned lists |
+| `--no-pinned` | Only lists that aren't pinned |
+| `--readonly` | Only readonly lists |
+| `--no-readonly` | Only lists that aren't readonly |
+| `--realtime` | Only realtime lists |
+| `--no-realtime` | Only lists that aren't realtime |
+| `--protected` | Only protected lists |
+| `--no-protected` | Only lists that aren't protected |
+| `--indexable` | Only indexable lists |
+| `--no-indexable` | Only lists that aren't indexable |
+| `--generative` | Only generative lists |
+| `--no-generative` | Only lists that aren't generative |
+| `--page <number>` | The page to fetch (default 1) |
+| `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
+| `--order <field>` | The field to order by (one of: createdAt, updatedAt, name, pathName, pinned, readonly, realtime, protected, indexable, generative, activated) |
+| `--direction <direction>` | The order direction (one of: asc, desc) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad lists get`
+
+Show a list
+
+```
+jsonpad lists get [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad lists create`
+
+Create a list
+
+```
+jsonpad lists create [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `--name <name>` | The name |
+| `--path-name <path name>` | The path name, which can be used in place of the id |
+| `--description <text>` | The description |
+| `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
+| `--schema <json>` | A JSON schema that items must match: JSON, @file or - for stdin |
+| `--generative-prompt <text>` | The prompt used to generate items, for generative lists |
+| `--pinned` | Pinned in the dashboard |
+| `--no-pinned` | Not pinned |
+| `--readonly` | Items can't be created, changed or deleted |
+| `--no-readonly` | Not readonly |
+| `--realtime` | Changes are sent to realtime clients |
+| `--no-realtime` | Not realtime |
+| `--protected` | The list can't be deleted while it has items |
+| `--no-protected` | Not protected |
+| `--indexable` | Items can be listed, filtered and searched with a token |
+| `--no-indexable` | Not indexable |
+| `--generative` | Items can be generated from the generative prompt |
+| `--no-generative` | Not generative |
+| `--data <json>` | The whole list as a JSON object (JSON, @file or - for stdin); the options above take precedence |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad lists update`
+
+Change a list. Fields that aren't given are left as they are
+
+```
+jsonpad lists update [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--name <name>` | The name |
+| `--path-name <path name>` | The path name, which can be used in place of the id |
+| `--description <text>` | The description |
+| `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
+| `--schema <json>` | A JSON schema that items must match: JSON, @file or - for stdin |
+| `--generative-prompt <text>` | The prompt used to generate items, for generative lists |
+| `--no-schema` | Remove the schema |
+| `--no-generative-prompt` | Remove the generative prompt |
+| `--pinned` | Pinned in the dashboard |
+| `--no-pinned` | Not pinned |
+| `--readonly` | Items can't be created, changed or deleted |
+| `--no-readonly` | Not readonly |
+| `--realtime` | Changes are sent to realtime clients |
+| `--no-realtime` | Not realtime |
+| `--protected` | The list can't be deleted while it has items |
+| `--no-protected` | Not protected |
+| `--indexable` | Items can be listed, filtered and searched with a token |
+| `--no-indexable` | Not indexable |
+| `--generative` | Items can be generated from the generative prompt |
+| `--no-generative` | Not generative |
+| `--data <json>` | The whole list as a JSON object (JSON, @file or - for stdin); the options above take precedence |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad lists delete`
+
+Delete a list. Its items and indexes are deleted in the background
+
+```
+jsonpad lists delete [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `-y, --yes` | Don't ask for confirmation |
+
+### `jsonpad indexes list`
+
+List a list's indexes (the default when no command is given)
+
+```
+jsonpad indexes list [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--name <name>` | Only indexes whose name contains this |
+| `--path-name <path name>` | Only indexes whose path name contains this |
+| `--value-type <type>` | Only indexes of this type (one of: string, number, date) |
+| `--alias` | Only the alias index |
+| `--no-alias` | Only other indexes |
+| `--guard` | Only guard indexes |
+| `--no-guard` | Only other indexes |
+| `--tagged <tags>` | Only those with one of these comma-separated tags (repeat the option to require every group) |
+| `--page <number>` | The page to fetch (default 1) |
+| `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
+| `--order <field>` | The field to order by (one of: createdAt, updatedAt, name, pathName, valueType, alias, sorting, filtering, searching, guard, defaultOrderDirection, activated) |
+| `--direction <direction>` | The order direction (one of: asc, desc) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad indexes get`
+
+Show an index
+
+```
+jsonpad indexes get [options] <list> <index>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `index` | The index (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad indexes create`
+
+Create an index. It builds in the background, and until it has built it can't be used to filter, order or search items
+
+```
+jsonpad indexes create [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--name <name>` | The name |
+| `--path-name <path name>` | The path name, used to filter and order items, and in place of the id |
+| `--description <text>` | The description |
+| `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
+| `--pointer <pointer>` | The JSON pointer to the value in item data, e.g. /title |
+| `--value-type <type>` | The type of value (one of: string, number, date) |
+| `--default-order-direction <direction>` | The direction items are ordered in by default (one of: asc, desc) |
+| `--alias` | Items can be fetched by this index's value, in place of their id |
+| `--no-alias` | Not an alias |
+| `--sorting` | Items can be ordered by this index |
+| `--no-sorting` | Items can't be ordered by it |
+| `--filtering` | Items can be filtered by this index |
+| `--no-filtering` | Items can't be filtered by it |
+| `--searching` | This index's values are included in searches |
+| `--no-searching` | Not included in searches |
+| `--guard` | The value is removed from item data returned with a token |
+| `--no-guard` | Not a guard |
+| `--data <json>` | The whole index as a JSON object (JSON, @file or - for stdin); the options above take precedence |
+| `--wait` | Wait for the index to be built, if it needs building |
+| `--timeout <seconds>` | How long --wait waits (default 600) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad indexes update`
+
+Change an index. Fields that aren't given are left as they are. Changing the pointer rebuilds the index
+
+```
+jsonpad indexes update [options] <list> <index>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `index` | The index (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--name <name>` | The name |
+| `--path-name <path name>` | The path name, used to filter and order items, and in place of the id |
+| `--description <text>` | The description |
+| `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
+| `--pointer <pointer>` | The JSON pointer to the value in item data, e.g. /title |
+| `--value-type <type>` | The type of value (one of: string, number, date) |
+| `--default-order-direction <direction>` | The direction items are ordered in by default (one of: asc, desc) |
+| `--alias` | Items can be fetched by this index's value, in place of their id |
+| `--no-alias` | Not an alias |
+| `--sorting` | Items can be ordered by this index |
+| `--no-sorting` | Items can't be ordered by it |
+| `--filtering` | Items can be filtered by this index |
+| `--no-filtering` | Items can't be filtered by it |
+| `--searching` | This index's values are included in searches |
+| `--no-searching` | Not included in searches |
+| `--guard` | The value is removed from item data returned with a token |
+| `--no-guard` | Not a guard |
+| `--data <json>` | The whole index as a JSON object (JSON, @file or - for stdin); the options above take precedence |
+| `--wait` | Wait for the index to be built, if it needs building |
+| `--timeout <seconds>` | How long --wait waits (default 600) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad indexes delete`
+
+Delete an index
+
+```
+jsonpad indexes delete [options] <list> <index>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `index` | The index (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `-y, --yes` | Don't ask for confirmation |
+
+### `jsonpad indexes rebuild`
+
+The same as [`jsonpad rebuild-index`](#jsonpad-rebuild-index), with the same arguments and options.
+
+### `jsonpad indexes wait`
+
+Wait for an index to finish building
+
+```
+jsonpad indexes wait [options] <list> <index>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `index` | The index (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--timeout <seconds>` | How long to wait (default 600) |
+
+### `jsonpad items list`
+
+List a list's items (the default when no command is given)
+
+```
+jsonpad items list [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--where <index=value>` | Only items whose indexed value matches, e.g. --where title=Pancakes (repeatable; the index must allow filtering) |
+| `--alias <value>` | Only the item with this alias |
+| `--identity-id <id>` | Only items owned by this identity |
+| `--readonly` | Only readonly items |
+| `--no-readonly` | Only items that aren't readonly |
+| `--tagged <tags>` | Only those with one of these comma-separated tags (repeat the option to require every group) |
+| `--include-data` | Include each item's data |
+| `--path <json path>` | With --include-data, only the part of the data matching this JSONPath, e.g. $.ingredients |
+| `--include-guarded` | Include guarded values in the item data, for items the identity making the request owns |
+| `--page <number>` | The page to fetch (default 1) |
+| `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
+| `--order <field>` | The field to order by: createdAt, updatedAt, or an index path name |
+| `--direction <direction>` | The order direction (one of: asc, desc) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items get`
+
+Show an item, with its data
+
+```
+jsonpad items get [options] <list> <item>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+
+| Option | Description |
+| --- | --- |
+| `--item-version <version>` | An earlier version of the item (see its events) |
+| `--path <json path>` | Only the part of the data matching this JSONPath, e.g. $.ingredients |
+| `--no-data` | Leave out the item's data |
+| `--generate` | Generate the item's data, in a generative list |
+| `--include-guarded` | Include guarded values in the item data, for items the identity making the request owns |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items create`
+
+Create an item
+
+```
+jsonpad items create [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--data <json>` | The item's data: JSON, @file or - for stdin |
+| `--description <text>` | The description |
+| `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
+| `--readonly` | The item can't be changed or deleted |
+| `--no-readonly` | Not readonly |
+| `--generate` | Generate the item's data, in a generative list |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items update`
+
+Change an item. --data replaces all of its data; fields that aren't given are left as they are
+
+```
+jsonpad items update [options] <list> <item>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+
+| Option | Description |
+| --- | --- |
+| `--data <json>` | The item's data: JSON, @file or - for stdin |
+| `--description <text>` | The description |
+| `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
+| `--readonly` | The item can't be changed or deleted |
+| `--no-readonly` | Not readonly |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items delete`
+
+Delete an item. It can be restored from its events
+
+```
+jsonpad items delete [options] <list> <item>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+
+| Option | Description |
+| --- | --- |
+| `-y, --yes` | Don't ask for confirmation |
+
+### `jsonpad items data get`
+
+Output an item's data, or part of it. Without an item, output the data of a page of the list's items
+
+```
+jsonpad items data get [options] <list> [item] [pointer]
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` (optional) | The item (id or alias) |
+| `pointer` (optional) | A JSON pointer to part of the data, e.g. /ingredients/0 |
+
+| Option | Description |
+| --- | --- |
+| `--item-version <version>` | An earlier version of the item (see its events) |
+| `--path <json path>` | Only the part of the data matching this JSONPath, e.g. $.ingredients |
+| `--where <index=value>` | Without an item: only items whose indexed value matches (repeatable) |
+| `--include-guarded` | Include guarded values in the item data, for items the identity making the request owns |
+| `-o, --output <format>` | Output format: json (the default), or ndjson for one line per value (one of: json, ndjson) |
+| `--page <number>` | The page to fetch (default 1) |
+| `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
+| `--order <field>` | Without an item: the field to order by (createdAt, updatedAt, or an index path name) |
+| `--direction <direction>` | The order direction (one of: asc, desc) |
+
+### `jsonpad items data set`
+
+Merge data into an item's data, or into part of it. Objects are merged, and arrays are added to. Outputs the changed item
+
+```
+jsonpad items data set [options] <list> <item> [pointer]
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+| `pointer` (optional) | A JSON pointer to part of the data, e.g. /ingredients |
+
+| Option | Description |
+| --- | --- |
+| `--data <json>` | The data: JSON, @file or - for stdin |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items data replace`
+
+Replace an item's data, or part of it. Outputs the changed item
+
+```
+jsonpad items data replace [options] <list> <item> [pointer]
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+| `pointer` (optional) | A JSON pointer to part of the data, e.g. /ingredients |
+
+| Option | Description |
+| --- | --- |
+| `--data <json>` | The data: JSON, @file or - for stdin |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items data patch`
+
+Change an item's data, or part of it, with a JSON patch (RFC 6902). Outputs the changed item
+
+```
+jsonpad items data patch [options] <list> <item> [pointer]
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+| `pointer` (optional) | A JSON pointer to part of the data, e.g. /ingredients |
+
+| Option | Description |
+| --- | --- |
+| `--patch <json>` | The JSON patch: JSON, @file or - for stdin |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items data delete`
+
+Delete part of an item's data. Outputs the changed item
+
+```
+jsonpad items data delete [options] <list> <item> <pointer>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+| `pointer` | A JSON pointer to the part to delete, e.g. /ingredients/0 |
+
+| Option | Description |
+| --- | --- |
+| `-y, --yes` | Don't ask for confirmation |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities list`
+
+List identities (the default when no command is given)
+
+```
+jsonpad identities list [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `--group <group>` | Only identities whose group contains this |
+| `--name <name>` | Only identities whose name contains this |
+| `--display-name <name>` | Only identities whose display name contains this |
+| `--tagged <tags>` | Only those with one of these comma-separated tags (repeat the option to require every group) |
+| `--page <number>` | The page to fetch (default 1) |
+| `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
+| `--order <field>` | The field to order by (one of: createdAt, updatedAt, name, displayName, group, activated) |
+| `--direction <direction>` | The order direction (one of: asc, desc) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities get`
+
+Show an identity
+
+```
+jsonpad identities get [options] <identity>
+```
+
+| Argument | Description |
+| --- | --- |
+| `identity` | The identity: its id, group/name, or the name of an identity without a group |
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities create`
+
+Create an identity. The password is asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD
+
+```
+jsonpad identities create [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `--group <group>` | The group, which separates identities with the same name |
+| `--name <name>` | The name, used to log in |
+| `--display-name <name>` | The name to show |
+| `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities update`
+
+Change an identity. Fields that aren't given are left as they are
+
+```
+jsonpad identities update [options] <identity>
+```
+
+| Argument | Description |
+| --- | --- |
+| `identity` | The identity: its id, group/name, or the name of an identity without a group |
+
+| Option | Description |
+| --- | --- |
+| `--group <group>` | The group, which separates identities with the same name |
+| `--name <name>` | The name, used to log in |
+| `--display-name <name>` | The name to show |
+| `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
+| `--no-display-name` | Remove the display name |
+| `--password` | Change the password: asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities delete`
+
+Delete an identity
+
+```
+jsonpad identities delete [options] <identity>
+```
+
+| Argument | Description |
+| --- | --- |
+| `identity` | The identity: its id, group/name, or the name of an identity without a group |
+
+| Option | Description |
+| --- | --- |
+| `-y, --yes` | Don't ask for confirmation |
 
 ### `jsonpad whoami`
 
@@ -229,6 +887,6 @@ JSONPAD_TOKEN, then the default profile.
 8  Rate limited (after retrying), or a plan limit or the monthly quota was
    reached
 
-The schema commands and rebuild-index exit with 1 for every API error, as they
-did in @basementuniverse/jsonpad-sdk.
+The schema commands and rebuild-index (and indexes rebuild) exit with 1 for
+every API error, as they did in @basementuniverse/jsonpad-sdk.
 ```

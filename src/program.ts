@@ -2,6 +2,10 @@ import { createRequire } from 'node:module';
 import { Command, CommanderError } from 'commander';
 import { describeLimits } from './client.ts';
 import { defineConfig } from './commands/config.ts';
+import { defineIdentities } from './commands/identities.ts';
+import { defineIndexes } from './commands/indexes.ts';
+import { defineItems } from './commands/items.ts';
+import { defineLists } from './commands/lists.ts';
 import { defineRebuildIndex } from './commands/rebuild-index.ts';
 import { defineExportSchema } from './commands/schema/export.ts';
 import { defineMoveLists } from './commands/schema/move.ts';
@@ -39,17 +43,18 @@ export const EXIT_CODES_HELP = `Exit codes:
   8  Rate limited (after retrying), or a plan limit or the monthly quota was
      reached
 
-The schema commands and rebuild-index exit with 1 for every API error, as they
-did in @basementuniverse/jsonpad-sdk.`;
+The schema commands and rebuild-index (and indexes rebuild) exit with 1 for
+every API error, as they did in @basementuniverse/jsonpad-sdk.`;
 
 /**
- * The `jsonpad schema ...` commands, and the top-level commands they're the
- * same as
+ * Commands that are other names for the commands ported from the SDK, and the
+ * commands they're the same as
  */
-export const SCHEMA_ALIASES: Record<string, string> = {
+export const ALIASES: Record<string, string> = {
   'schema sync': 'sync-schema',
   'schema export': 'export-schema',
   'schema move': 'move-lists',
+  'indexes rebuild': 'rebuild-index',
 };
 
 /**
@@ -93,6 +98,11 @@ export function createProgram(context: Context): Command {
   defineSyncSchema(schema.command('sync'), context);
   defineExportSchema(schema.command('export'), context);
   defineMoveLists(schema.command('move'), context);
+
+  defineLists(program.command('lists'), context);
+  defineIndexes(program.command('indexes'), context);
+  defineItems(program.command('items'), context);
+  defineIdentities(program.command('identities'), context);
 
   defineWhoami(program.command('whoami'), context);
   defineConfig(program.command('config'), context);

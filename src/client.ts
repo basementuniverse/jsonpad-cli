@@ -14,6 +14,14 @@ export const MAX_RETRIES = 5;
 export const MAX_RETRY_WAIT_SECONDS = 60;
 
 /**
+ * Retries that wait at least this long are mentioned on stderr, so that a long
+ * wait doesn't look like the command has hung. Shorter ones happen all the
+ * time on plans with a minimum gap between requests, so they're only mentioned
+ * with --verbose
+ */
+export const RETRY_NOTICE_SECONDS = 5;
+
+/**
  * Methods that already handle being rate limited themselves
  */
 const NOT_RETRIED = new Set<PropertyKey>(['waitForIndex']);
@@ -81,11 +89,16 @@ export function createRetryingClient(
               throw error;
             }
 
-            context.error(
-              context.colours.dim(
-                `Rate limited, retrying in ${formatSeconds(delay)}...`
-              )
-            );
+            if (
+              delay >= RETRY_NOTICE_SECONDS * 1000 ||
+              context.globalOptions.verbose
+            ) {
+              context.error(
+                context.colours.dim(
+                  `Rate limited, retrying in ${formatSeconds(delay)}...`
+                )
+              );
+            }
             await context.sleep(delay);
 
             return attempt(value.apply(target, args), count + 1);

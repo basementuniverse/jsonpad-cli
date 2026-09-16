@@ -4,7 +4,7 @@ import {
   createProgram,
   ENVIRONMENT_HELP,
   EXIT_CODES_HELP,
-  SCHEMA_ALIASES,
+  ALIASES,
 } from './program.ts';
 
 function fullName(command: Command): string {
@@ -29,7 +29,7 @@ function anchor(name: string): string {
 }
 
 function describeCommand(command: Command): string {
-  const alias = SCHEMA_ALIASES[fullName(command).replace(/^jsonpad /, '')];
+  const alias = ALIASES[fullName(command).replace(/^jsonpad /, '')];
   if (alias) {
     return [
       `### \`${fullName(command)}\``,

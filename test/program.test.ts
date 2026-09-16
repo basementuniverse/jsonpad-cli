@@ -51,6 +51,11 @@ test('schema aliases have the same arguments and options', () => {
       signature(findCommand(program, [flat]))
     );
   }
+
+  assert.deepEqual(
+    signature(findCommand(program, ['indexes', 'rebuild'])),
+    signature(findCommand(program, ['rebuild-index']))
+  );
 });
 
 test('errors are coloured red only on a TTY without NO_COLOR', async () => {
@@ -74,4 +79,33 @@ test('an unexpected error prints its stack and exits 1', async () => {
 
   assert.equal(await run(['rebuild-index', 'a', 'b'], context, program), 1);
   assert.match(context.output.stderr, /^Error: TypeError: boom\n\s+at /);
+});
+
+test('no command has an option with the same name as a global option, which would shadow it', () => {
+  const program = createProgram(createTestContext());
+  const globalFlags = new Set(
+    program.options
+      .flatMap(option => [option.long, option.short])
+      .filter(Boolean)
+  );
+  const clashes: string[] = [];
+
+  const visit = (command: Command, path: string[]) => {
+    for (const option of command.options) {
+      for (const flag of [option.long, option.short]) {
+        if (
+          flag &&
+          flag !== '--help' &&
+          flag !== '-h' &&
+          globalFlags.has(flag)
+        ) {
+          clashes.push(`${path.join(' ')} ${flag}`);
+        }
+      }
+    }
+    command.commands.forEach(child => visit(child, [...path, child.name()]));
+  };
+  program.commands.forEach(child => visit(child, [child.name()]));
+
+  assert.deepEqual(clashes, []);
 });

@@ -2,8 +2,9 @@
 
 The `jsonpad` command line tool for [JSONPad](https://jsonpad.io).
 
-It syncs schema documents (lists and their indexes) with your account, for
-example in a deploy script or CI.
+Use it to manage lists, indexes, items and identities from the command line,
+and to sync schema documents (lists and their indexes) with your account, e.g.
+in a deploy script or CI.
 
 ## Install
 
@@ -65,6 +66,53 @@ The API URL comes from `--api-url`, then the profile's URL, then
 
 ## Usage
 
+### Lists, indexes, items and identities
+
+```bash
+# Lists
+jsonpad lists
+jsonpad lists create --name Recipes --path-name recipes --indexable
+jsonpad lists get recipes
+jsonpad lists update recipes --pinned --tags cookbook,public
+jsonpad lists delete recipes
+
+# Indexes, waiting for a new index to be built
+jsonpad indexes recipes
+jsonpad indexes create recipes --path-name title --pointer /title --alias --filtering --wait
+jsonpad indexes wait recipes title
+
+# Items: filter by an index with --where, and fetch an item by its alias
+jsonpad items create recipes --data '{"title": "pancakes", "servings": 4}'
+jsonpad items create recipes --data @waffles.json
+jsonpad items recipes --where title=pancakes --order title
+jsonpad items get recipes pancakes
+
+# An item's data, or part of it by JSON pointer
+jsonpad items data get recipes pancakes /ingredients
+jsonpad items data set recipes pancakes --data '{"servings": 6}'
+jsonpad items data replace recipes pancakes /ingredients --data '["flour", "eggs"]'
+jsonpad items data patch recipes pancakes --patch @changes.json
+jsonpad items data delete recipes pancakes /ingredients/0
+
+# Identities, by id or group/name. Passwords are asked for, or read from stdin
+jsonpad identities create --group staff --name ada
+jsonpad identities get staff/ada
+jsonpad identities update staff/ada --display-name Ada --password
+```
+
+Lists and indexes can be named by id or path name, and items by id or alias.
+Options that take JSON (`--data`, `--schema`, `--patch`) accept JSON, `@file`,
+or `-` to read from stdin. `--data` gives a list or index as a whole object,
+and other options take precedence over it; for an item, `--data` is the item's
+data.
+
+Most commands have a short form: `jsonpad lists` is `jsonpad lists list`, and
+`ls` and `rm` work in place of `list` and `delete`. Commands that list things
+fetch one page, with `--page`, `--limit` (up to 100), `--order` and
+`--direction`.
+
+### Schema sync
+
 ```bash
 # See what a sync would change, then apply it
 jsonpad sync-schema --dry-run
@@ -91,16 +139,17 @@ jsonpad whoami
 ```
 
 The schema commands are also available as `jsonpad schema sync`,
-`jsonpad schema export` and `jsonpad schema move`.
+`jsonpad schema export` and `jsonpad schema move`, and `rebuild-index` as
+`jsonpad indexes rebuild`.
 
 Run `jsonpad --help`, or `jsonpad <command> --help`, for every option. The full
 command reference is in [REFERENCE.md](REFERENCE.md).
 
 ### Output
 
-Commands that output records (`whoami` and `config list` so far) print a table
-in a terminal, and JSON when their output is piped or redirected, so
-`jsonpad whoami | jq .usage` works. Choose a format with `--output` (`-o`):
+Commands that output records print a table in a terminal, and JSON when their
+output is piped or redirected, so `jsonpad lists get recipes | jq .itemCount`
+works. Choose a format with `--output` (`-o`):
 
 | Format   | Output                                                   |
 | -------- | -------------------------------------------------------- |
@@ -108,6 +157,9 @@ in a terminal, and JSON when their output is piped or redirected, so
 | `json`   | JSON (also `--json`)                                     |
 | `ndjson` | One JSON record per line                                 |
 | `id`     | One id per line, e.g. for `xargs` (also `--quiet`, `-q`) |
+
+`jsonpad items data get` always outputs the data itself, as JSON (or NDJSON
+with `-o ndjson`).
 
 Data goes to stdout. Messages, warnings and questions go to stderr.
 
@@ -121,8 +173,8 @@ script or CI), they refuse with exit code `5` unless you pass `--yes`.
 ### Rate limits
 
 A request that's rate limited is retried after the delay the API asks for, up
-to 5 times. A request refused because the monthly quota has run out isn't
-retried.
+to 5 times, which is mentioned on stderr if the wait is 5 seconds or more. A
+request refused because the monthly quota has run out isn't retried.
 
 `--verbose` (`-V`) logs each request to stderr, and afterwards, the rate limit
 and quota left:

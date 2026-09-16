@@ -1,6 +1,11 @@
 import type { Context } from './context.ts';
-import { CliError, describeApiError, EXIT_BUILD_FAILED } from './errors.ts';
-import { IndexBuildError, type JSONPad } from './sdk.ts';
+import {
+  apiError,
+  CliError,
+  describeApiError,
+  EXIT_BUILD_FAILED,
+} from './errors.ts';
+import { IndexBuildError, type Index, type JSONPad } from './sdk.ts';
 
 export type IndexToWaitFor = {
   listId: string;
@@ -59,5 +64,43 @@ export async function waitForIndexes(
       'One or more indexes did not build. Fix the problem, then run jsonpad rebuild-index <list> <index>',
       EXIT_BUILD_FAILED
     );
+  }
+}
+
+/**
+ * Wait for one index to be built, describing progress on stderr, and return it
+ * once it's ready. For the new commands, which keep stdout for data
+ */
+export async function waitForIndex(
+  context: Context,
+  jsonpad: JSONPad,
+  list: string,
+  index: string,
+  timeout: number
+): Promise<Index> {
+  const { green, red } = context.colours;
+  context.stderr.write(`Waiting for index ${list}/${index} to build... `);
+
+  try {
+    const ready = await jsonpad.waitForIndex(list, index, { timeout });
+    context.stderr.write(`${green('ready')}\n`);
+
+    return ready;
+  } catch (error) {
+    if (error instanceof IndexBuildError) {
+      context.stderr.write(
+        `${red(error.reason === 'failed' ? 'failed' : 'timed out')}\n`
+      );
+
+      throw new CliError(
+        error.reason === 'failed'
+          ? `The index didn't build. Fix the problem, then run jsonpad indexes rebuild ${list} ${index}`
+          : `The index didn't finish building in time. Run jsonpad indexes wait ${list} ${index} to keep waiting`,
+        EXIT_BUILD_FAILED
+      );
+    }
+
+    context.stderr.write(`${red('error')}\n`);
+    throw apiError(error, context.auth?.apiUrl);
   }
 }

@@ -343,7 +343,8 @@ describe('retries', () => {
     assert.equal(result.exitCode, 0, result.stderr);
     assert.equal(result.requests.length, 2);
     assert.equal(result.stdout, 'Rebuilding index recipes/title\n');
-    assert.equal(result.stderr, 'Rate limited, retrying in 0s...\n');
+    // A short wait isn't worth mentioning
+    assert.equal(result.stderr, '');
   });
 
   test('an exhausted quota is not retried, and exits with 8', async () => {

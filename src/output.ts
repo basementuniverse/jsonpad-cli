@@ -108,7 +108,8 @@ export function addOutputOptions(command: Command): Command {
  */
 export function resolveOutputFormat(
   context: Context,
-  options: OutputOptions
+  options: OutputOptions,
+  defaultFormat?: OutputFormat
 ): OutputFormat {
   const chosen = new Set<OutputFormat>([
     ...(options.output ? [options.output] : []),
@@ -122,7 +123,57 @@ export function resolveOutputFormat(
     );
   }
 
-  return [...chosen][0] ?? (context.stdout.isTTY ? 'table' : 'json');
+  return (
+    [...chosen][0] ?? defaultFormat ?? (context.stdout.isTTY ? 'table' : 'json')
+  );
+}
+
+/**
+ * Add --output (json or ndjson only) to a command that outputs JSON data, e.g.
+ * an item's data
+ */
+export function addDataOutputOptions(command: Command): Command {
+  return command.addOption(
+    new Option(
+      '-o, --output <format>',
+      'Output format: json (the default), or ndjson for one line per value'
+    ).choices(['json', 'ndjson'])
+  );
+}
+
+/**
+ * Output JSON data as it is, e.g. an item's data. A list of values is one per
+ * line with ndjson
+ */
+export function printData(
+  context: Context,
+  format: 'json' | 'ndjson',
+  data: unknown,
+  { list = false }: { list?: boolean } = {}
+): void {
+  if (format === 'ndjson') {
+    for (const value of list && Array.isArray(data) ? data : [data]) {
+      context.log(JSON.stringify(value));
+    }
+  } else {
+    context.log(JSON.stringify(data, null, 2));
+  }
+}
+
+/**
+ * A date and time, in UTC, to the minute
+ */
+export function formatTimestamp(date: Date): string {
+  return `${date.toISOString().slice(0, 16).replace('T', ' ')}Z`;
+}
+
+/**
+ * Names of the flags that are true, e.g. "pinned, realtime", or "-" for none
+ */
+export function formatFlags<T>(record: T, names: (keyof T & string)[]): string {
+  const set = names.filter(name => record[name]);
+
+  return set.length > 0 ? set.join(', ') : '-';
 }
 
 export type Column<T> = {
@@ -174,8 +225,17 @@ export function renderTable<T>(
 export function renderDetails(rows: [label: string, value: string][]): string {
   const width = Math.max(...rows.map(([label]) => label.length));
 
+  // A value with several lines (e.g. JSON) has its later lines indented to
+  // line up with the first
   return rows
-    .map(([label, value]) => `${label.padEnd(width)}  ${value}`.trimEnd())
+    .map(([label, value]) =>
+      value
+        .split('\n')
+        .map((line, i) =>
+          `${(i === 0 ? label : '').padEnd(width)}  ${line}`.trimEnd()
+        )
+        .join('\n')
+    )
     .join('\n');
 }
 

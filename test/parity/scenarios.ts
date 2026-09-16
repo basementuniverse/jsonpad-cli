@@ -832,10 +832,12 @@ export const scenarios: Scenario[] = [
 ];
 
 /**
- * The `jsonpad schema ...` commands must behave exactly like the flat ones
+ * The `jsonpad schema ...` commands and `jsonpad indexes rebuild` must behave
+ * exactly like the commands ported from the SDK
  */
 export const ALIASES: Record<string, string[]> = {
   'sync-schema': ['schema', 'sync'],
   'export-schema': ['schema', 'export'],
   'move-lists': ['schema', 'move'],
+  'rebuild-index': ['indexes', 'rebuild'],
 };

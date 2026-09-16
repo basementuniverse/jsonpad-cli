@@ -7,7 +7,29 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
-## [1.1.0] - 2024-06-06
+## [Unreleased]
+
+### Added
+
+- `jsonpad lists`, with `list`, `get`, `create`, `update` and `delete`.
+- `jsonpad indexes`, with `list`, `get`, `create`, `update`, `delete`,
+  `rebuild` (the same as `rebuild-index`) and `wait`. `create` and `update`
+  can `--wait` for the index to be built.
+- `jsonpad items`, with `list` (filter by indexes with `--where`), `get`,
+  `create`, `update` and `delete`, and `jsonpad items data` with `get`, `set`,
+  `replace`, `patch` and `delete`, for an item's data or part of it.
+- `jsonpad identities`, with `list`, `get`, `create`, `update` and `delete`.
+  Identities can be named by id or `group/name`. Passwords are asked for, or
+  read from stdin or `JSONPAD_IDENTITY_PASSWORD`, never taken as an option.
+- Options that take JSON accept JSON, `@file`, or `-` for stdin.
+- Deletes ask for confirmation in a terminal, and need `--yes` elsewhere.
+
+### Changed
+
+- Retries after being rate limited are only mentioned on stderr when the wait
+  is 5 seconds or more, or with `--verbose`.
+
+## [1.1.0] - 2026-09-16
 
 ### Added
 
@@ -34,7 +56,7 @@ Dates are npm publish dates.
   fail straight away. A request refused because the monthly quota has run out
   isn't retried.
 
-## [1.0.0] - 2024-06-06
+## [1.0.0] - 2026-09-16
 
 The `jsonpad` command, moved out of `@basementuniverse/jsonpad-sdk` (where
 it's deprecated) into its own package.
