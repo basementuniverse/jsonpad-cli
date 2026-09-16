@@ -7,7 +7,7 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
-## [Unreleased]
+## [1.1.0] - 2024-06-06
 
 ### Added
 
@@ -34,7 +34,7 @@ Dates are npm publish dates.
   fail straight away. A request refused because the monthly quota has run out
   isn't retried.
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2024-06-06
 
 The `jsonpad` command, moved out of `@basementuniverse/jsonpad-sdk` (where
 it's deprecated) into its own package.
