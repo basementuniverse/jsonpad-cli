@@ -7,7 +7,7 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
-## [Unreleased]
+## [1.2.0] - 2026-09-16
 
 ### Added
 
@@ -23,11 +23,30 @@ Dates are npm publish dates.
   read from stdin or `JSONPAD_IDENTITY_PASSWORD`, never taken as an option.
 - Options that take JSON accept JSON, `@file`, or `-` for stdin.
 - Deletes ask for confirmation in a terminal, and need `--yes` elsewhere.
+- `--all` and `--max` for commands that list things, to fetch every page.
+- `jsonpad lists search`.
+- `stats`, `events` and `event` for lists, items, indexes and identities, and
+  `jsonpad items restore`.
+- `jsonpad items export`, which outputs a list's items as NDJSON, and
+  `jsonpad items import`, which creates items from NDJSON or a JSON array.
+  Imports check every record first, keep to the plan's rate limits, and can
+  `--dry-run` or `--continue-on-error`.
+- Identity mode: `jsonpad identities register`, `login` (with `-o env` to set
+  `JSONPAD_IDENTITY_TOKEN` and `JSONPAD_IDENTITY_GROUP`), `logout`, and
+  `identities self` with `get`, `update` and `delete`. While
+  `JSONPAD_IDENTITY_TOKEN` is set, commands that work with items act as the
+  identity, and `whoami` says which one. `--identity-group` sets the group.
+- `jsonpad listen`, which prints realtime events from lists and items. It
+  connects to the production realtime server only.
+- `jsonpad completion bash|zsh|fish`, for completing commands and options with
+  Tab.
 
 ### Changed
 
 - Retries after being rate limited are only mentioned on stderr when the wait
   is 5 seconds or more, or with `--verbose`.
+- Piping output to a command that stops reading early (e.g. `head`) no longer
+  prints an error.
 
 ## [1.1.0] - 2026-09-16
 

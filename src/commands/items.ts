@@ -8,7 +8,6 @@ import {
   formatBytes,
   formatTimestamp,
   printData,
-  printPage,
   printRecord,
   resolveOutputFormat,
   type OutputOptions,
@@ -17,16 +16,24 @@ import {
 } from '../output.ts';
 import {
   addBooleanOption,
+  addAllOption,
   addPagingOptions,
+  checkAllOptions,
+  fetchAll,
+  parsePositiveInteger,
   addTaggedOption,
   addTagsOption,
   pagingParameters,
   removeUndefined,
+  printPages,
   request,
   sdkPointer,
+  type AllOptions,
   type PagingOptions,
 } from '../resources.ts';
 import type { Item } from '../sdk.ts';
+import { defineEventCommands, defineStatsCommand } from './history.ts';
+import { defineTransferCommands } from './transfer.ts';
 
 type ItemFields = {
   data?: string;
@@ -154,6 +161,7 @@ export function defineItems(command: Command, context: Context): Command {
       'With --include-data, only the part of the data matching this JSONPath, e.g. $.ingredients'
     )
     .option('--include-guarded', includeGuardedDescription);
+  addAllOption(list);
   addPagingOptions(list, {
     description:
       'The field to order by: createdAt, updatedAt, or an index path name',
@@ -162,6 +170,7 @@ export function defineItems(command: Command, context: Context): Command {
     async (
       listId: string,
       options: PagingOptions &
+        AllOptions &
         OutputOptions & {
           where?: string[];
           alias?: string;
@@ -173,27 +182,28 @@ export function defineItems(command: Command, context: Context): Command {
           includeGuarded?: boolean;
         }
     ) => {
-      const format = resolveOutputFormat(context, options);
       const where = whereParameters(options.where);
       const jsonpad = context.createClient();
-      const page = await request(context, () =>
-        jsonpad.fetchItems(
-          listId,
-          removeUndefined({
-            ...where,
-            ...pagingParameters(options),
-            alias: options.alias,
-            identityId: options.identityId,
-            readonly: options.readonly,
-            tagged: options.tagged,
-            includeData: options.includeData,
-            path: options.path,
-            includeGuarded: options.includeGuarded,
-          })
-        )
+      await printPages(
+        context,
+        options,
+        paging =>
+          jsonpad.fetchItems(
+            listId,
+            removeUndefined({
+              ...where,
+              ...paging,
+              alias: options.alias,
+              identityId: options.identityId,
+              readonly: options.readonly,
+              tagged: options.tagged,
+              includeData: options.includeData,
+              path: options.path,
+              includeGuarded: options.includeGuarded,
+            })
+          ),
+        itemOutput(context)
       );
-
-      printPage(context, format, page, itemOutput(context));
     }
   );
 
@@ -330,6 +340,60 @@ export function defineItems(command: Command, context: Context): Command {
       }
     );
 
+  addOutputOptions(
+    command
+      .command('restore')
+      .summary('Restore an item to how it was after one of its events')
+      .description(
+        'Restore an item to how it was after one of its events, re-creating it if it was deleted. Find restorable events with jsonpad items events <list> <item> --restorable'
+      )
+      .argument('<list>', 'The list (id or path name)')
+      .argument('<item>', 'The item (id or alias)')
+      .argument('<event>', 'The event id')
+  ).action(
+    async (
+      listId: string,
+      itemId: string,
+      eventId: string,
+      options: OutputOptions
+    ) => {
+      const format = resolveOutputFormat(context, options);
+      const jsonpad = context.createClient();
+      const item = await request(context, () =>
+        jsonpad.restoreItem(listId, itemId, eventId)
+      );
+
+      printRecord(context, format, item, itemOutput(context));
+    }
+  );
+
+  const target = {
+    arguments: [
+      ['<list>', 'The list (id or path name)'],
+      ['<item>', 'The item (id or alias)'],
+    ] as [string, string][],
+  };
+
+  defineStatsCommand(command, context, {
+    ...target,
+    description: "Show an item's events, by day",
+    fetch: (jsonpad, [listId, itemId], parameters) =>
+      jsonpad.fetchItemStats(listId, itemId, parameters),
+  });
+
+  defineEventCommands(command, context, {
+    ...target,
+    noun: 'item',
+    items: true,
+    types: ['item-created', 'item-updated', 'item-restored', 'item-deleted'],
+    fetchEvents: (jsonpad, [listId, itemId], parameters) =>
+      jsonpad.fetchItemEvents(listId, itemId, parameters),
+    fetchEvent: (jsonpad, [listId, itemId], eventId, parameters) =>
+      jsonpad.fetchItemEvent(listId, itemId, eventId, parameters),
+  });
+
+  defineTransferCommands(command, context, whereParameters);
+
   defineItemsData(
     command
       .command('data')
@@ -368,6 +432,15 @@ function defineItemsData(command: Command, context: Context): Command {
           (value: string, previous: string[] = []) => [...previous, value]
         )
         .option('--include-guarded', includeGuardedDescription)
+        .option(
+          '--all',
+          "Without an item: output every item's data, one per line (NDJSON) unless --output is json"
+        )
+        .option(
+          '--max <number>',
+          'With --all, stop after this many',
+          parsePositiveInteger
+        )
     ),
     {
       description:
@@ -379,32 +452,56 @@ function defineItemsData(command: Command, context: Context): Command {
       itemId: string | undefined,
       pointer: string | undefined,
       options: DataOutputOptions &
-        PagingOptions & {
+        PagingOptions &
+        AllOptions & {
           itemVersion?: string;
           path?: string;
           where?: string[];
           includeGuarded?: boolean;
         }
     ) => {
-      const format = options.output ?? 'json';
       const jsonpad = context.createClient();
 
       if (itemId === undefined) {
+        checkAllOptions(options);
         const where = whereParameters(options.where);
-        const page = await request(context, () =>
+        const fetchPage = (paging: Partial<PagingOptions>) =>
           jsonpad.fetchItemsData(
             listId,
             removeUndefined({
               ...where,
               ...pagingParameters(options),
+              ...paging,
               path: options.path,
               includeGuarded: options.includeGuarded,
             })
-          )
-        );
+          );
 
-        printData(context, format, page.data, { list: true });
+        if (!options.all) {
+          const page = await request(context, () => fetchPage({}));
+          printData(context, options.output ?? 'json', page.data, {
+            list: true,
+          });
+          return;
+        }
+
+        const records = fetchAll(context, fetchPage, options.max);
+        if ((options.output ?? 'ndjson') === 'ndjson') {
+          for await (const data of records) {
+            printData(context, 'ndjson', data);
+          }
+        } else {
+          const all: unknown[] = [];
+          for await (const data of records) {
+            all.push(data);
+          }
+          printData(context, 'json', all);
+        }
         return;
+      }
+
+      if (options.all || options.max !== undefined) {
+        throw new CliError('--all and --max only work without an item');
       }
 
       const data = await request(context, () =>
@@ -420,7 +517,7 @@ function defineItemsData(command: Command, context: Context): Command {
         )
       );
 
-      printData(context, format, data);
+      printData(context, options.output ?? 'json', data);
     }
   );
 

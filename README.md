@@ -109,7 +109,91 @@ data.
 Most commands have a short form: `jsonpad lists` is `jsonpad lists list`, and
 `ls` and `rm` work in place of `list` and `delete`. Commands that list things
 fetch one page, with `--page`, `--limit` (up to 100), `--order` and
-`--direction`.
+`--direction`, or every page with `--all` (output as NDJSON, one record per
+line, unless `--output` says otherwise). `--max` stops `--all` early.
+
+```bash
+# Every item's id, e.g. to pipe to xargs
+jsonpad items recipes --all -q
+```
+
+### Search, stats and history
+
+```bash
+jsonpad lists search recipes pancake --include-items
+
+# Counts by day: items, indexes and events
+jsonpad lists stats recipes --days 30
+
+# Lists, items, indexes and identities all have stats, events and event
+jsonpad items events recipes pancakes --type item-updated --start-at 2026-09-01
+jsonpad items event recipes pancakes <event> --include-snapshot
+
+# Put an item back how it was after an event (or re-create a deleted item)
+jsonpad items events recipes pancakes --restorable
+jsonpad items restore recipes pancakes <event>
+```
+
+### Exporting and importing items
+
+```bash
+# Every item in a list as NDJSON, oldest first
+jsonpad items export recipes --out recipes.ndjson
+
+# Create the items again, e.g. in another list or account
+jsonpad items import recipes-copy recipes.ndjson --dry-run
+jsonpad items import recipes-copy recipes.ndjson
+
+# Just the data, from one list into another
+jsonpad items export recipes --data-only | jsonpad items import archive - --data-only
+```
+
+`import` reads NDJSON (one record per line) or a JSON array. Each record is an
+item as `export` outputs it (its `data`, `description`, `tags` and `readonly`
+are imported; ids and dates aren't), or with `--data-only`, an item's data.
+
+Every record is checked before anything is created. Items are created one at a
+time, at the pace the account's plan allows, so a large import can take a
+while: on a plan with 60 requests a minute, about a second per item. The
+import warns if it's bigger than the requests left this month.
+
+If an item can't be created, the import stops and says how to import the rest.
+With `--continue-on-error`, it carries on and lists the failures at the end.
+
+### Acting as an identity
+
+Apps built on JSONPad often log users in as identities, and items can belong to
+the identity that created them. To see what an identity sees, log in as one:
+
+```bash
+jsonpad identities register --group players --name zed
+eval "$(jsonpad identities login --group players --name zed -o env)"
+
+# Items commands now act as players/zed
+jsonpad items create scores --data '{"score": 42}'
+jsonpad whoami                  # shows the identity too
+jsonpad identities self update --display-name Zed
+jsonpad identities logout
+```
+
+`login -o env` sets `JSONPAD_IDENTITY_TOKEN` (and `JSONPAD_IDENTITY_GROUP`).
+While it's set, commands that work with items send the identity along with
+the API token. Passwords are asked for in a terminal, or read from stdin or
+`JSONPAD_IDENTITY_PASSWORD`.
+
+### Realtime events
+
+```bash
+# Print events from lists with realtime turned on, until Ctrl+C
+jsonpad listen recipes
+jsonpad listen recipes --events item-created,item-deleted -o ndjson
+jsonpad listen --items pancakes --count 1
+```
+
+`listen` connects to JSONPad's realtime server, so it only works with the
+production API, not with `--api-url` or a profile for another API. Each plan
+limits how many realtime connections an account can hold at once; a refused
+connection is retried by itself.
 
 ### Schema sync
 
@@ -182,6 +266,23 @@ and quota left:
 ```bash
 jsonpad whoami --verbose
 ```
+
+### Shell completion
+
+```bash
+# bash: add to ~/.bashrc
+eval "$(jsonpad completion bash)"
+
+# zsh: add to ~/.zshrc, after compinit
+eval "$(jsonpad completion zsh)"
+
+# fish
+jsonpad completion fish > ~/.config/fish/completions/jsonpad.fish
+```
+
+Commands, options and their choices are completed. Lists, items and other
+names from your account aren't, since that would make a request every time you
+press Tab.
 
 ## Continuous integration
 

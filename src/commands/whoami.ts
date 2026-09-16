@@ -57,7 +57,8 @@ function describeLimit(
 export function whoamiDetails(
   context: Context,
   self: TokenSelf,
-  auth: Auth
+  auth: Auth,
+  identity: string | null = null
 ): [string, string][] {
   const { dim, yellow, red } = context.colours;
   const { token, plan, usage } = self;
@@ -97,6 +98,7 @@ export function whoamiDetails(
         : 'JSONPAD_TOKEN',
     ],
     ['API', auth.apiUrl],
+    ...(identity !== null ? [['Identity', identity] as [string, string]] : []),
     ['IPs', token.ips && token.ips.length > 0 ? token.ips.join(', ') : 'any'],
     ['Plan', plan.name],
     ['Rate limit', rate.length > 0 ? rate.join(', ') : 'none'],
@@ -146,8 +148,24 @@ export async function whoami(
     throw apiError(error, context.auth?.apiUrl);
   }
 
+  // Items commands act as the identity in JSONPAD_IDENTITY_TOKEN, which is
+  // easy to forget is set, so a table says which identity that is
+  let identity: string | null = null;
+  if (context.identity && format === 'table') {
+    try {
+      const found = await jsonpad.fetchSelfIdentity();
+      identity = `${found.group ? `${found.group}/` : ''}${found.name} ${context.colours.dim(
+        `${found.id}, from JSONPAD_IDENTITY_TOKEN`
+      )}`;
+    } catch (error) {
+      identity = context.colours.red(
+        `JSONPAD_IDENTITY_TOKEN is set, but isn't valid: ${apiError(error).message}`
+      );
+    }
+  }
+
   printRecord(context, format, self, {
     id: record => record.token.id,
-    details: record => whoamiDetails(context, record, context.auth!),
+    details: record => whoamiDetails(context, record, context.auth!, identity),
   });
 }

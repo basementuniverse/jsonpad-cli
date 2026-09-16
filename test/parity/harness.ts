@@ -15,6 +15,13 @@ export type ApiRequest = {
    * The API token sent, when the scenario asks for it with recordTokens
    */
   token?: string | null;
+
+  /**
+   * The identity token and group sent, when the scenario asks for them with
+   * recordTokens
+   */
+  identityToken?: string | null;
+  identityGroup?: string | null;
 };
 
 export type ApiResponse = {
@@ -120,7 +127,13 @@ export async function runScenario(
       query: {},
       body: text ? JSON.parse(text) : null,
       ...(scenario.recordTokens
-        ? { token: (request.headers['x-api-token'] as string) ?? null }
+        ? {
+            token: (request.headers['x-api-token'] as string) ?? null,
+            identityToken:
+              (request.headers['x-identity-token'] as string) ?? null,
+            identityGroup:
+              (request.headers['x-identity-group'] as string) ?? null,
+          }
         : {}),
     };
     for (const [key, value] of url.searchParams) {

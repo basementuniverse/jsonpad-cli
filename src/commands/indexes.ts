@@ -6,7 +6,6 @@ import {
   addOutputOptions,
   formatFlags,
   formatTimestamp,
-  printPage,
   printRecord,
   resolveOutputFormat,
   type OutputOptions,
@@ -15,16 +14,19 @@ import {
 } from '../output.ts';
 import {
   addBooleanOption,
+  addAllOption,
   addPagingOptions,
   addTaggedOption,
   addTagsOption,
-  pagingParameters,
   readBody,
   removeUndefined,
+  printPages,
   request,
+  type AllOptions,
   type PagingOptions,
 } from '../resources.ts';
 import type { Index, JSONPad } from '../sdk.ts';
+import { defineEventCommands, defineStatsCommand } from './history.ts';
 import { defineRebuildIndex } from './rebuild-index.ts';
 
 const FLAGS = ['alias', 'sorting', 'filtering', 'searching', 'guard'] as const;
@@ -223,32 +225,35 @@ export function defineIndexes(command: Command, context: Context): Command {
   addBooleanOption(list, 'alias', 'Only the alias index', 'Only other indexes');
   addBooleanOption(list, 'guard', 'Only guard indexes', 'Only other indexes');
   addTaggedOption(list);
+  addAllOption(list);
   addPagingOptions(list, { choices: ORDER_FIELDS });
   addOutputOptions(list).action(
     async (
       listId: string,
       options: PagingOptions &
+        AllOptions &
         OutputOptions &
         IndexFields & { tagged?: string[] }
     ) => {
-      const format = resolveOutputFormat(context, options);
       const jsonpad = context.createClient();
-      const page = await request(context, () =>
-        jsonpad.fetchIndexes(
-          listId,
-          removeUndefined({
-            ...pagingParameters(options),
-            name: options.name,
-            pathName: options.pathName,
-            valueType: options.valueType,
-            alias: options.alias,
-            guard: options.guard,
-            tagged: options.tagged,
-          }) as Parameters<typeof jsonpad.fetchIndexes>[1]
-        )
+      await printPages(
+        context,
+        options,
+        paging =>
+          jsonpad.fetchIndexes(
+            listId,
+            removeUndefined({
+              ...paging,
+              name: options.name,
+              pathName: options.pathName,
+              valueType: options.valueType,
+              alias: options.alias,
+              guard: options.guard,
+              tagged: options.tagged,
+            }) as Parameters<typeof jsonpad.fetchIndexes>[1]
+          ),
+        indexOutput(context)
       );
-
-      printPage(context, format, page, indexOutput(context));
     }
   );
 
@@ -404,6 +409,37 @@ export function defineIndexes(command: Command, context: Context): Command {
         );
       }
     );
+
+  const target = {
+    arguments: [
+      ['<list>', 'The list (id or path name)'],
+      ['<index>', 'The index (id or path name)'],
+    ] as [string, string][],
+  };
+
+  defineStatsCommand(command, context, {
+    ...target,
+    description: "Show an index's events, by day",
+    fetch: (jsonpad, [listId, indexId], parameters) =>
+      jsonpad.fetchIndexStats(listId, indexId, parameters),
+  });
+
+  defineEventCommands(command, context, {
+    ...target,
+    noun: 'index',
+    types: [
+      'index-created',
+      'index-updated',
+      'index-deleted',
+      'index-built',
+      'index-build-failed',
+      'index-build-requested',
+    ],
+    fetchEvents: (jsonpad, [listId, indexId], parameters) =>
+      jsonpad.fetchIndexEvents(listId, indexId, parameters),
+    fetchEvent: (jsonpad, [listId, indexId], eventId, parameters) =>
+      jsonpad.fetchIndexEvent(listId, indexId, eventId, parameters),
+  });
 
   return command;
 }

@@ -1,6 +1,6 @@
 import os from 'node:os';
 import { createRetryingClient, installVerboseFetch } from './client.ts';
-import { resolveAuth, type Auth } from './config.ts';
+import { resolveAuth, resolveIdentity, type Auth } from './config.ts';
 import { createColours, type Colours } from './output.ts';
 import { JSONPad } from './sdk.ts';
 
@@ -21,6 +21,15 @@ export type GlobalOptions = {
   profile?: string;
   apiUrl?: string;
   verbose?: boolean;
+  identityGroup?: string;
+};
+
+/**
+ * The identity requests are made as, for commands that act on items
+ */
+export type IdentityAuth = {
+  token: string;
+  group: string | null;
 };
 
 /**
@@ -51,6 +60,12 @@ export type Context = {
    * The client createClient made, if it's been called
    */
   client: JSONPad | null;
+
+  /**
+   * The identity the client acts as, from JSONPAD_IDENTITY_TOKEN, once
+   * createClient has been called
+   */
+  identity: IdentityAuth | null;
 
   /**
    * Write a line to stdout
@@ -102,6 +117,7 @@ export function createContext(options: ContextOptions = {}): Context {
     globalOptions: {},
     auth: null,
     client: null,
+    identity: null,
     log: (text = '') => void stdout.write(`${text}\n`),
     error: (text = '') => void stderr.write(`${text}\n`),
     sleep:
@@ -115,10 +131,15 @@ export function createContext(options: ContextOptions = {}): Context {
         installVerboseFetch(context);
       }
 
+      const identity = resolveIdentity(context);
+
       context.auth = auth;
+      context.identity = identity;
       context.client = createRetryingClient(
         context,
-        new JSONPad(auth.token, undefined, undefined, { apiUrl: auth.apiUrl })
+        new JSONPad(auth.token, identity?.group ?? undefined, identity?.token, {
+          apiUrl: auth.apiUrl,
+        })
       );
 
       return context.client;

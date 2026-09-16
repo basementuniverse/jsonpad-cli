@@ -1,10 +1,16 @@
 import { createRequire } from 'node:module';
 import { Command, CommanderError } from 'commander';
 import { describeLimits } from './client.ts';
+import {
+  COMPLETE_COMMAND,
+  completions,
+  defineCompletion,
+} from './completion.ts';
 import { defineConfig } from './commands/config.ts';
 import { defineIdentities } from './commands/identities.ts';
 import { defineIndexes } from './commands/indexes.ts';
 import { defineItems } from './commands/items.ts';
+import { defineListen } from './commands/listen.ts';
 import { defineLists } from './commands/lists.ts';
 import { defineRebuildIndex } from './commands/rebuild-index.ts';
 import { defineExportSchema } from './commands/schema/export.ts';
@@ -26,6 +32,13 @@ export const ENVIRONMENT_HELP = `Environment:
   JSONPAD_PROFILE    The profile to use, like --profile
   JSONPAD_CONFIG     The config file, where profiles are saved (see
                      jsonpad config path)
+  JSONPAD_IDENTITY_TOKEN
+                     Act as this identity when working with items (see
+                     jsonpad identities login)
+  JSONPAD_IDENTITY_GROUP
+                     The identity's group, like --identity-group
+  JSONPAD_IDENTITY_PASSWORD
+                     A password for identities create, register and login
   NO_COLOR           Set to turn off coloured output
 
 A profile chosen with --profile or JSONPAD_PROFILE comes first, then
@@ -70,6 +83,10 @@ export function createProgram(context: Context): Command {
     .option('--profile <name>', 'Use a saved profile (see jsonpad config)')
     .option('--api-url <url>', "The API's URL, e.g. a local server")
     .option('-V, --verbose', 'Log requests, and the rate limit and quota')
+    .option(
+      '--identity-group <group>',
+      'The group of the identity in JSONPAD_IDENTITY_TOKEN (for identities in a group)'
+    )
     .showSuggestionAfterError()
     .configureHelp({ showGlobalOptions: true })
     .exitOverride()
@@ -106,6 +123,8 @@ export function createProgram(context: Context): Command {
 
   defineWhoami(program.command('whoami'), context);
   defineConfig(program.command('config'), context);
+  defineListen(program.command('listen'), context);
+  defineCompletion(program.command('completion'), context);
 
   return program;
 }
@@ -120,6 +139,14 @@ export async function run(
 ): Promise<number> {
   if (argv.length === 0) {
     program.outputHelp();
+    return EXIT_OK;
+  }
+
+  // Called by the completion scripts on every Tab, so it skips parsing
+  if (argv[0] === COMPLETE_COMMAND) {
+    for (const candidate of completions(program, argv.slice(1))) {
+      context.log(candidate);
+    }
     return EXIT_OK;
   }
 

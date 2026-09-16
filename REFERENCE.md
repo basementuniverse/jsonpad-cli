@@ -18,6 +18,10 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 - [`jsonpad lists create`](#jsonpad-lists-create): Create a list
 - [`jsonpad lists update`](#jsonpad-lists-update): Change a list. Fields that aren't given are left as they are
 - [`jsonpad lists delete`](#jsonpad-lists-delete): Delete a list. Its items and indexes are deleted in the background
+- [`jsonpad lists search`](#jsonpad-lists-search): Search a list's items, using the indexes that allow searching
+- [`jsonpad lists stats`](#jsonpad-lists-stats): Show a list's stats: its items, indexes and events, by day
+- [`jsonpad lists events`](#jsonpad-lists-events): List a list's events, newest first by default
+- [`jsonpad lists event`](#jsonpad-lists-event): Show one of a list's events
 - [`jsonpad indexes list`](#jsonpad-indexes-list): List a list's indexes (the default when no command is given)
 - [`jsonpad indexes get`](#jsonpad-indexes-get): Show an index
 - [`jsonpad indexes create`](#jsonpad-indexes-create): Create an index. It builds in the background, and until it has built it can't be used to filter, order or search items
@@ -25,11 +29,20 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 - [`jsonpad indexes delete`](#jsonpad-indexes-delete): Delete an index
 - [`jsonpad indexes rebuild`](#jsonpad-indexes-rebuild): Rebuild an index whose last build failed, once the problem has been fixed
 - [`jsonpad indexes wait`](#jsonpad-indexes-wait): Wait for an index to finish building
+- [`jsonpad indexes stats`](#jsonpad-indexes-stats): Show an index's events, by day
+- [`jsonpad indexes events`](#jsonpad-indexes-events): List an index's events, newest first by default
+- [`jsonpad indexes event`](#jsonpad-indexes-event): Show one of an index's events
 - [`jsonpad items list`](#jsonpad-items-list): List a list's items (the default when no command is given)
 - [`jsonpad items get`](#jsonpad-items-get): Show an item, with its data
 - [`jsonpad items create`](#jsonpad-items-create): Create an item
 - [`jsonpad items update`](#jsonpad-items-update): Change an item. --data replaces all of its data; fields that aren't given are left as they are
 - [`jsonpad items delete`](#jsonpad-items-delete): Delete an item. It can be restored from its events
+- [`jsonpad items restore`](#jsonpad-items-restore): Restore an item to how it was after one of its events
+- [`jsonpad items stats`](#jsonpad-items-stats): Show an item's events, by day
+- [`jsonpad items events`](#jsonpad-items-events): List an item's events, newest first by default
+- [`jsonpad items event`](#jsonpad-items-event): Show one of an item's events
+- [`jsonpad items export`](#jsonpad-items-export): Output every item in a list as NDJSON, e.g. for a backup
+- [`jsonpad items import`](#jsonpad-items-import): Create items from an NDJSON or JSON file
 - [`jsonpad items data get`](#jsonpad-items-data-get): Output an item's data, or part of it. Without an item, output the data of a page of the list's items
 - [`jsonpad items data set`](#jsonpad-items-data-set): Merge data into an item's data, or into part of it. Objects are merged, and arrays are added to. Outputs the changed item
 - [`jsonpad items data replace`](#jsonpad-items-data-replace): Replace an item's data, or part of it. Outputs the changed item
@@ -40,12 +53,23 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 - [`jsonpad identities create`](#jsonpad-identities-create): Create an identity. The password is asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD
 - [`jsonpad identities update`](#jsonpad-identities-update): Change an identity. Fields that aren't given are left as they are
 - [`jsonpad identities delete`](#jsonpad-identities-delete): Delete an identity
+- [`jsonpad identities register`](#jsonpad-identities-register): Register an identity, as an app would for a new user
+- [`jsonpad identities login`](#jsonpad-identities-login): Log in as an identity, to act as it
+- [`jsonpad identities logout`](#jsonpad-identities-logout): Log out the identity in JSONPAD_IDENTITY_TOKEN, so that its token stops working
+- [`jsonpad identities self get`](#jsonpad-identities-self-get): Show the identity in JSONPAD_IDENTITY_TOKEN (the default when no command is given)
+- [`jsonpad identities self update`](#jsonpad-identities-self-update): Change the identity in JSONPAD_IDENTITY_TOKEN. Fields that aren't given are left as they are
+- [`jsonpad identities self delete`](#jsonpad-identities-self-delete): Delete the identity in JSONPAD_IDENTITY_TOKEN
+- [`jsonpad identities stats`](#jsonpad-identities-stats): Show an identity's events, by day
+- [`jsonpad identities events`](#jsonpad-identities-events): List an identity's events, newest first by default
+- [`jsonpad identities event`](#jsonpad-identities-event): Show one of an identity's events
 - [`jsonpad whoami`](#jsonpad-whoami): Show the token you're using, its plan's limits and usage
 - [`jsonpad config set-profile`](#jsonpad-config-set-profile): Add or update a profile
 - [`jsonpad config use`](#jsonpad-config-use): Choose the default profile
 - [`jsonpad config list`](#jsonpad-config-list): List profiles (tokens are masked)
 - [`jsonpad config remove`](#jsonpad-config-remove): Remove a profile
 - [`jsonpad config path`](#jsonpad-config-path): Show where the config file is (set JSONPAD_CONFIG to use a different file)
+- [`jsonpad listen`](#jsonpad-listen): Print realtime events from lists and items as they happen
+- [`jsonpad completion`](#jsonpad-completion): Output a script that completes jsonpad commands and options when you press Tab
 
 ### `jsonpad sync-schema`
 
@@ -160,6 +184,8 @@ jsonpad lists list [options]
 | `--no-indexable` | Only lists that aren't indexable |
 | `--generative` | Only generative lists |
 | `--no-generative` | Only lists that aren't generative |
+| `--all` | Fetch every page, not just one. The output is NDJSON unless --output says otherwise |
+| `--max <number>` | With --all, stop after this many |
 | `--page <number>` | The page to fetch (default 1) |
 | `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
 | `--order <field>` | The field to order by (one of: createdAt, updatedAt, name, pathName, pinned, readonly, realtime, protected, indexable, generative, activated) |
@@ -274,6 +300,96 @@ jsonpad lists delete [options] <list>
 | --- | --- |
 | `-y, --yes` | Don't ask for confirmation |
 
+### `jsonpad lists search`
+
+Search a list's items, using the indexes that allow searching
+
+```
+jsonpad lists search [options] <list> <query>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `query` | What to search for, 3 to 100 characters |
+
+| Option | Description |
+| --- | --- |
+| `--include-items` | Include the items, not just their ids |
+| `--include-data` | With --include-items, include each item's data |
+| `--include-guarded` | Include guarded values in the item data, for items the identity making the request owns |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad lists stats`
+
+Show a list's stats: its items, indexes and events, by day
+
+```
+jsonpad lists stats [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--days <number>` | How many days of stats, up to 90 (default 7) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json) |
+| `--json` | Output JSON (the same as --output json) |
+
+### `jsonpad lists events`
+
+List a list's events, newest first by default
+
+```
+jsonpad lists events [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--type <type>` | Only events of this type (one of: list-created, list-updated, list-deleted) |
+| `--start-at <date>` | Only events at or after this date, e.g. 2026-09-01 |
+| `--end-at <date>` | Only events at or before this date |
+| `--include-snapshot` | Include the list as it was after each event |
+| `--include-attachments` | Include each event's attachments |
+| `--all` | Fetch every page, not just one. The output is NDJSON unless --output says otherwise |
+| `--max <number>` | With --all, stop after this many |
+| `--page <number>` | The page to fetch (default 1) |
+| `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
+| `--order <field>` | The field to order by (one of: createdAt, type) |
+| `--direction <direction>` | The order direction (one of: asc, desc) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad lists event`
+
+Show one of a list's events
+
+```
+jsonpad lists event [options] <list> <event>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `event` | The event id |
+
+| Option | Description |
+| --- | --- |
+| `--include-snapshot` | Include the list as it was after each event |
+| `--include-attachments` | Include each event's attachments |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
 ### `jsonpad indexes list`
 
 List a list's indexes (the default when no command is given)
@@ -296,6 +412,8 @@ jsonpad indexes list [options] <list>
 | `--guard` | Only guard indexes |
 | `--no-guard` | Only other indexes |
 | `--tagged <tags>` | Only those with one of these comma-separated tags (repeat the option to require every group) |
+| `--all` | Fetch every page, not just one. The output is NDJSON unless --output says otherwise |
+| `--max <number>` | With --all, stop after this many |
 | `--page <number>` | The page to fetch (default 1) |
 | `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
 | `--order <field>` | The field to order by (one of: createdAt, updatedAt, name, pathName, valueType, alias, sorting, filtering, searching, guard, defaultOrderDirection, activated) |
@@ -438,6 +556,77 @@ jsonpad indexes wait [options] <list> <index>
 | --- | --- |
 | `--timeout <seconds>` | How long to wait (default 600) |
 
+### `jsonpad indexes stats`
+
+Show an index's events, by day
+
+```
+jsonpad indexes stats [options] <list> <index>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `index` | The index (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--days <number>` | How many days of stats, up to 90 (default 7) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json) |
+| `--json` | Output JSON (the same as --output json) |
+
+### `jsonpad indexes events`
+
+List an index's events, newest first by default
+
+```
+jsonpad indexes events [options] <list> <index>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `index` | The index (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--type <type>` | Only events of this type (one of: index-created, index-updated, index-deleted, index-built, index-build-failed, index-build-requested) |
+| `--start-at <date>` | Only events at or after this date, e.g. 2026-09-01 |
+| `--end-at <date>` | Only events at or before this date |
+| `--include-snapshot` | Include the index as it was after each event |
+| `--include-attachments` | Include each event's attachments |
+| `--all` | Fetch every page, not just one. The output is NDJSON unless --output says otherwise |
+| `--max <number>` | With --all, stop after this many |
+| `--page <number>` | The page to fetch (default 1) |
+| `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
+| `--order <field>` | The field to order by (one of: createdAt, type) |
+| `--direction <direction>` | The order direction (one of: asc, desc) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad indexes event`
+
+Show one of an index's events
+
+```
+jsonpad indexes event [options] <list> <index> <event>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `index` | The index (id or path name) |
+| `event` | The event id |
+
+| Option | Description |
+| --- | --- |
+| `--include-snapshot` | Include the index as it was after each event |
+| `--include-attachments` | Include each event's attachments |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
 ### `jsonpad items list`
 
 List a list's items (the default when no command is given)
@@ -461,6 +650,8 @@ jsonpad items list [options] <list>
 | `--include-data` | Include each item's data |
 | `--path <json path>` | With --include-data, only the part of the data matching this JSONPath, e.g. $.ingredients |
 | `--include-guarded` | Include guarded values in the item data, for items the identity making the request owns |
+| `--all` | Fetch every page, not just one. The output is NDJSON unless --output says otherwise |
+| `--max <number>` | With --all, stop after this many |
 | `--page <number>` | The page to fetch (default 1) |
 | `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
 | `--order <field>` | The field to order by: createdAt, updatedAt, or an index path name |
@@ -558,6 +749,140 @@ jsonpad items delete [options] <list> <item>
 | --- | --- |
 | `-y, --yes` | Don't ask for confirmation |
 
+### `jsonpad items restore`
+
+Restore an item to how it was after one of its events, re-creating it if it was deleted. Find restorable events with jsonpad items events <list> <item> --restorable
+
+```
+jsonpad items restore [options] <list> <item> <event>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+| `event` | The event id |
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items stats`
+
+Show an item's events, by day
+
+```
+jsonpad items stats [options] <list> <item>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+
+| Option | Description |
+| --- | --- |
+| `--days <number>` | How many days of stats, up to 90 (default 7) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json) |
+| `--json` | Output JSON (the same as --output json) |
+
+### `jsonpad items events`
+
+List an item's events, newest first by default
+
+```
+jsonpad items events [options] <list> <item>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+
+| Option | Description |
+| --- | --- |
+| `--type <type>` | Only events of this type (one of: item-created, item-updated, item-restored, item-deleted) |
+| `--start-at <date>` | Only events at or after this date, e.g. 2026-09-01 |
+| `--end-at <date>` | Only events at or before this date |
+| `--restorable` | Only events the item can be restored to (jsonpad items restore) |
+| `--include-snapshot` | Include the item as it was after each event |
+| `--include-attachments` | Include each event's attachments |
+| `--include-guarded` | Include guarded values in snapshots, for items the identity making the request owns |
+| `--all` | Fetch every page, not just one. The output is NDJSON unless --output says otherwise |
+| `--max <number>` | With --all, stop after this many |
+| `--page <number>` | The page to fetch (default 1) |
+| `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
+| `--order <field>` | The field to order by (one of: createdAt, type) |
+| `--direction <direction>` | The order direction (one of: asc, desc) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items event`
+
+Show one of an item's events
+
+```
+jsonpad items event [options] <list> <item> <event>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `item` | The item (id or alias) |
+| `event` | The event id |
+
+| Option | Description |
+| --- | --- |
+| `--include-snapshot` | Include the item as it was after each event |
+| `--include-attachments` | Include each event's attachments |
+| `--include-guarded` | Include guarded values in snapshots, for items the identity making the request owns |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad items export`
+
+Output every item in a list as NDJSON (one item per line), oldest first, e.g. for a backup. Import them again with jsonpad items import
+
+```
+jsonpad items export [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--out <file>` | Write to a file, not stdout |
+| `--data-only` | Only output each item's data |
+| `--where <index=value>` | Only items whose indexed value matches (repeatable) |
+| `--tagged <tags>` | Only items with one of these comma-separated tags (repeat the option to require every group) |
+| `--include-guarded` | Include guarded values, for items the identity making the request owns |
+| `--max <number>` | Stop after this many items |
+
+### `jsonpad items import`
+
+Create an item for each record in a file: NDJSON (one record per line), or a JSON array. Records are items, as jsonpad items export outputs them, or with --data-only, item data. Items are created one at a time, at the pace the plan allows
+
+```
+jsonpad items import [options] <list> <file>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `file` | The file to import, or - for stdin |
+
+| Option | Description |
+| --- | --- |
+| `--data-only` | Each record is the data for an item |
+| `--dry-run` | Check the records, and say how many items would be created, without creating any |
+| `--continue-on-error` | Carry on when an item can't be created, instead of stopping |
+
 ### `jsonpad items data get`
 
 Output an item's data, or part of it. Without an item, output the data of a page of the list's items
@@ -578,6 +903,8 @@ jsonpad items data get [options] <list> [item] [pointer]
 | `--path <json path>` | Only the part of the data matching this JSONPath, e.g. $.ingredients |
 | `--where <index=value>` | Without an item: only items whose indexed value matches (repeatable) |
 | `--include-guarded` | Include guarded values in the item data, for items the identity making the request owns |
+| `--all` | Without an item: output every item's data, one per line (NDJSON) unless --output is json |
+| `--max <number>` | With --all, stop after this many |
 | `-o, --output <format>` | Output format: json (the default), or ndjson for one line per value (one of: json, ndjson) |
 | `--page <number>` | The page to fetch (default 1) |
 | `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
@@ -682,6 +1009,8 @@ jsonpad identities list [options]
 | `--name <name>` | Only identities whose name contains this |
 | `--display-name <name>` | Only identities whose display name contains this |
 | `--tagged <tags>` | Only those with one of these comma-separated tags (repeat the option to require every group) |
+| `--all` | Fetch every page, not just one. The output is NDJSON unless --output says otherwise |
+| `--max <number>` | With --all, stop after this many |
 | `--page <number>` | The page to fetch (default 1) |
 | `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
 | `--order <field>` | The field to order by (one of: createdAt, updatedAt, name, displayName, group, activated) |
@@ -766,6 +1095,158 @@ jsonpad identities delete [options] <identity>
 | --- | --- |
 | `-y, --yes` | Don't ask for confirmation |
 
+### `jsonpad identities register`
+
+Register an identity, as an app would for a new user. Unlike create, this needs the token's register permission. The password is asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD
+
+```
+jsonpad identities register [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `--group <group>` | The group |
+| `--name <name>` | The name, used to log in |
+| `--display-name <name>` | The name to show |
+| `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities login`
+
+Log in as an identity, and output its identity token. Set JSONPAD_IDENTITY_TOKEN (and JSONPAD_IDENTITY_GROUP) to it to act as the identity when working with items, e.g. eval "$(jsonpad identities login --name ada -o env)". The password is asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD
+
+```
+jsonpad identities login [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `--group <group>` | The identity's group |
+| `--name <name>` | The identity's name |
+| `-o, --output <format>` | Output format: table (the default in a terminal), json (the default otherwise), env (export commands for a POSIX shell), or token (just the token) (one of: table, json, env, token) |
+
+### `jsonpad identities logout`
+
+Log out the identity in JSONPAD_IDENTITY_TOKEN, so that its token stops working
+
+```
+jsonpad identities logout [options]
+```
+
+### `jsonpad identities self get`
+
+Show the identity in JSONPAD_IDENTITY_TOKEN (the default when no command is given)
+
+```
+jsonpad identities self get [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities self update`
+
+Change the identity in JSONPAD_IDENTITY_TOKEN. Fields that aren't given are left as they are
+
+```
+jsonpad identities self update [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `--name <name>` | The name, used to log in |
+| `--display-name <name>` | The name to show |
+| `--no-display-name` | Remove the display name |
+| `--password` | Change the password: asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities self delete`
+
+Delete the identity in JSONPAD_IDENTITY_TOKEN
+
+```
+jsonpad identities self delete [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `-y, --yes` | Don't ask for confirmation |
+
+### `jsonpad identities stats`
+
+Show an identity's events, by day
+
+```
+jsonpad identities stats [options] <identity>
+```
+
+| Argument | Description |
+| --- | --- |
+| `identity` | The identity: its id, group/name, or the name of an identity without a group |
+
+| Option | Description |
+| --- | --- |
+| `--days <number>` | How many days of stats, up to 90 (default 7) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json) |
+| `--json` | Output JSON (the same as --output json) |
+
+### `jsonpad identities events`
+
+List an identity's events, newest first by default
+
+```
+jsonpad identities events [options] <identity>
+```
+
+| Argument | Description |
+| --- | --- |
+| `identity` | The identity: its id, group/name, or the name of an identity without a group |
+
+| Option | Description |
+| --- | --- |
+| `--type <type>` | Only events of this type (one of: identity-created, identity-updated, identity-deleted, identity-registered, identity-logged-in, identity-logged-out, identity-updated-self, identity-deleted-self) |
+| `--start-at <date>` | Only events at or after this date, e.g. 2026-09-01 |
+| `--end-at <date>` | Only events at or before this date |
+| `--include-snapshot` | Include the identity as it was after each event |
+| `--include-attachments` | Include each event's attachments |
+| `--all` | Fetch every page, not just one. The output is NDJSON unless --output says otherwise |
+| `--max <number>` | With --all, stop after this many |
+| `--page <number>` | The page to fetch (default 1) |
+| `--limit <number>` | How many to fetch per page, up to 100 (default 20) |
+| `--order <field>` | The field to order by (one of: createdAt, type) |
+| `--direction <direction>` | The order direction (one of: asc, desc) |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities event`
+
+Show one of an identity's events
+
+```
+jsonpad identities event [options] <identity> <event>
+```
+
+| Argument | Description |
+| --- | --- |
+| `identity` | The identity: its id, group/name, or the name of an identity without a group |
+| `event` | The event id |
+
+| Option | Description |
+| --- | --- |
+| `--include-snapshot` | Include the identity as it was after each event |
+| `--include-attachments` | Include each event's attachments |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
 ### `jsonpad whoami`
 
 Show the token you're using: what it can do, its plan's limits, and the account's usage this month
@@ -846,6 +1327,37 @@ Show where the config file is (set JSONPAD_CONFIG to use a different file)
 jsonpad config path [options]
 ```
 
+### `jsonpad listen`
+
+Print realtime events from lists and items as they happen, until you press Ctrl+C. Only lists with realtime turned on send events. This connects to https://realtime.jsonpad.io, so it doesn't work with --api-url or a profile for another API
+
+```
+jsonpad listen [options] [list...]
+```
+
+| Argument | Description |
+| --- | --- |
+| `list...` (optional) | Only events from these lists (ids or path names). Without any, events from every realtime list |
+
+| Option | Description |
+| --- | --- |
+| `--items <items>` | Only events for these comma-separated items (ids or aliases; repeatable) |
+| `--events <types>` | Only these comma-separated event types (repeatable): list-created, list-updated, list-deleted, item-created, item-updated, item-restored, item-deleted |
+| `-o, --output <format>` | Output format: text (the default in a terminal), or ndjson (the default otherwise) (one of: text, ndjson) |
+| `--count <number>` | Stop after this many events |
+
+### `jsonpad completion`
+
+Output a script that completes jsonpad commands and options when you press Tab
+
+```
+jsonpad completion [options] <shell>
+```
+
+| Argument | Description |
+| --- | --- |
+| `shell` | The shell |
+
 ## Global options
 
 Every command accepts these.
@@ -856,6 +1368,7 @@ Every command accepts these.
 | `--profile <name>` | Use a saved profile (see jsonpad config) |
 | `--api-url <url>` | The API's URL, e.g. a local server |
 | `-V, --verbose` | Log requests, and the rate limit and quota |
+| `--identity-group <group>` | The group of the identity in JSONPAD_IDENTITY_TOKEN (for identities in a group) |
 
 ## Environment
 
@@ -867,6 +1380,13 @@ JSONPAD_API_URL    The API's URL (default https://api.jsonpad.io)
 JSONPAD_PROFILE    The profile to use, like --profile
 JSONPAD_CONFIG     The config file, where profiles are saved (see
                    jsonpad config path)
+JSONPAD_IDENTITY_TOKEN
+                   Act as this identity when working with items (see
+                   jsonpad identities login)
+JSONPAD_IDENTITY_GROUP
+                   The identity's group, like --identity-group
+JSONPAD_IDENTITY_PASSWORD
+                   A password for identities create, register and login
 NO_COLOR           Set to turn off coloured output
 
 A profile chosen with --profile or JSONPAD_PROFILE comes first, then

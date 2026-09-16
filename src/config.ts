@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Context } from './context.ts';
+import type { Context, IdentityAuth } from './context.ts';
 import { CliError, EXIT_NOT_FOUND } from './errors.ts';
 
 export const DEFAULT_API_URL = 'https://api.jsonpad.io';
@@ -208,4 +208,27 @@ export function resolveAuth(context: Context): Auth {
  */
 export function maskToken(token: string): string {
   return token.length > 8 ? `••••${token.slice(-4)}` : '••••';
+}
+
+/**
+ * Work out which identity requests are made as, if any: the identity token is
+ * JSONPAD_IDENTITY_TOKEN (never an option, since it's a secret), and its group
+ * is --identity-group or JSONPAD_IDENTITY_GROUP
+ */
+export function resolveIdentity(context: Context): IdentityAuth | null {
+  const token = context.env.JSONPAD_IDENTITY_TOKEN;
+  const group =
+    context.globalOptions.identityGroup ?? context.env.JSONPAD_IDENTITY_GROUP;
+
+  if (!token) {
+    if (context.globalOptions.identityGroup !== undefined) {
+      throw new CliError(
+        '--identity-group needs an identity token in JSONPAD_IDENTITY_TOKEN. Log in with jsonpad identities login'
+      );
+    }
+
+    return null;
+  }
+
+  return { token, group: group || null };
 }

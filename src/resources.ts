@@ -2,7 +2,15 @@ import { InvalidArgumentError, Option, type Command } from 'commander';
 import type { Context } from './context.ts';
 import { apiError, CliError, EXIT_NOT_FOUND } from './errors.ts';
 import { collectList, readJsonInput } from './input.ts';
-import type { Identity, JSONPad } from './sdk.ts';
+import {
+  formatNumber,
+  printPage,
+  printRecords,
+  resolveOutputFormat,
+  type OutputOptions,
+  type RecordsOutput,
+} from './output.ts';
+import type { Identity, JSONPad, PaginatedResponse } from './sdk.ts';
 
 export const MAX_PAGE_SIZE = 100;
 
@@ -225,3 +233,148 @@ export async function resolveIdentityId(
 
   return matches[0].id;
 }
+
+export type AllOptions = {
+  all?: boolean;
+  max?: number;
+};
+
+/**
+ * Add --all and --max to a command that fetches a page of records
+ */
+export function addAllOption(command: Command): Command {
+  return command
+    .option(
+      '--all',
+      'Fetch every page, not just one. The output is NDJSON unless --output says otherwise'
+    )
+    .option(
+      '--max <number>',
+      'With --all, stop after this many',
+      parsePositiveInteger
+    );
+}
+
+/**
+ * Fetch every page of records, a page at a time, with the most records a page
+ * can have. Stops after max records, if given
+ *
+ * Pages are fetched by number, so records added or deleted while this runs
+ * can be skipped or repeated. Order by creation date for the most stable
+ * results
+ */
+export async function* fetchAll<T>(
+  context: Context,
+  fetchPage: (parameters: {
+    page: number;
+    limit: number;
+  }) => Promise<PaginatedResponse<T>>,
+  max?: number
+): AsyncGenerator<T, void, undefined> {
+  let fetched = 0;
+
+  for (let page = 1; ; page++) {
+    const response = await request(context, () =>
+      fetchPage({ page, limit: MAX_PAGE_SIZE })
+    );
+
+    for (const record of response.data) {
+      if (max !== undefined && fetched >= max) {
+        return;
+      }
+
+      fetched++;
+      yield record;
+    }
+
+    if (
+      response.data.length < MAX_PAGE_SIZE ||
+      page * MAX_PAGE_SIZE >= response.total ||
+      (max !== undefined && fetched >= max)
+    ) {
+      return;
+    }
+  }
+}
+
+export function checkAllOptions(options: PagingOptions & AllOptions): void {
+  if (
+    options.all &&
+    (options.page !== undefined || options.limit !== undefined)
+  ) {
+    throw new CliError(
+      "--page and --limit fetch one page, so they can't be used with --all. Use --max to limit how many are fetched"
+    );
+  }
+  if (!options.all && options.max !== undefined) {
+    throw new CliError('--max only works with --all');
+  }
+}
+
+/**
+ * Fetch and output a page of records, or with --all, every page
+ *
+ * With --all, NDJSON and ids are output as each page arrives. JSON and tables
+ * are output once everything has been fetched
+ */
+export async function printPages<T>(
+  context: Context,
+  options: PagingOptions & AllOptions & OutputOptions,
+  fetchPage: (
+    parameters: Partial<PagingOptions>
+  ) => Promise<PaginatedResponse<T>>,
+  output: RecordsOutput<T>
+): Promise<void> {
+  checkAllOptions(options);
+
+  if (!options.all) {
+    const format = resolveOutputFormat(context, options);
+    const page = await request(context, () =>
+      fetchPage(pagingParameters(options))
+    );
+
+    printPage(context, format, page, output);
+    return;
+  }
+
+  const format = resolveOutputFormat(context, options, 'ndjson');
+  const records = fetchAll(
+    context,
+    parameters => fetchPage({ ...pagingParameters(options), ...parameters }),
+    options.max
+  );
+
+  if (format === 'ndjson' || format === 'id') {
+    for await (const record of records) {
+      printRecords(context, format, [record], output);
+    }
+    return;
+  }
+
+  const all: T[] = [];
+  for await (const record of records) {
+    all.push(record);
+  }
+
+  printRecords(context, format, all, output);
+  if (format === 'table' && all.length > 0) {
+    context.error(context.colours.dim(`${formatNumber(all.length)} total`));
+  }
+}
+
+/**
+ * Parse a date option, e.g. --start-at, into an ISO 8601 string
+ */
+export function parseDate(value: string): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new InvalidArgumentError(
+      'Must be a date, e.g. 2026-09-01 or 2026-09-01T12:00:00Z.'
+    );
+  }
+
+  return date.toISOString();
+}
+
+export { parsePositiveInteger };

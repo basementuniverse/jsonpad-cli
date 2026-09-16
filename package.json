@@ -39,8 +39,10 @@
     "record-parity": "npm run build && node scripts/record-parity.ts"
   },
   "dependencies": {
-    "@basementuniverse/jsonpad-sdk": "^1.13.0",
-    "commander": "^15.0.0"
+    "@basementuniverse/jsonpad-realtime-sdk": "^1.6.0",
+    "@basementuniverse/jsonpad-sdk": "^1.14.1",
+    "commander": "^15.0.0",
+    "xmlhttprequest-ssl": "~2.1.2"
   },
   "devDependencies": {
     "@types/node": "^22.20.3",

@@ -117,6 +117,60 @@ function formatSeconds(milliseconds: number): string {
   return `${Number.isInteger(seconds) ? seconds : seconds.toFixed(1)}s`;
 }
 
+const pacedContexts = new WeakSet<Context>();
+
+/**
+ * Leave at least `interval` milliseconds between one response and the next
+ * request, so that a long run of requests (e.g. an import) keeps inside the
+ * plan's rate limits instead of being refused and retried
+ *
+ * Like --verbose, this wraps the global fetch, since the SDK uses it
+ */
+export function installRequestPacing(context: Context, interval: number): void {
+  if (interval <= 0 || pacedContexts.has(context)) {
+    return;
+  }
+  pacedContexts.add(context);
+
+  const originalFetch = globalThis.fetch;
+
+  // Pacing starts now, since it's installed after a request (e.g. fetching the
+  // plan's limits) has just finished
+  let lastFinishedAt = Date.now();
+
+  globalThis.fetch = async (input, init) => {
+    const wait = lastFinishedAt + interval - Date.now();
+    if (wait > 0) {
+      await context.sleep(wait);
+    }
+
+    try {
+      return await originalFetch(input, init);
+    } finally {
+      lastFinishedAt = Date.now();
+    }
+  };
+}
+
+/**
+ * The gap between requests that keeps inside a plan's rate limits: its minimum
+ * gap between requests, or an even spread of its requests per minute,
+ * whichever is longer, plus a little leeway for the server's clock
+ */
+export function requestInterval(plan: {
+  rateLimit: number | null;
+  maxRequestsPerMinute: number | null;
+}): number {
+  const gap = Math.max(
+    plan.rateLimit ?? 0,
+    plan.maxRequestsPerMinute
+      ? Math.ceil(60_000 / plan.maxRequestsPerMinute)
+      : 0
+  );
+
+  return gap > 0 ? gap + 50 : 0;
+}
+
 const verboseContexts = new WeakSet<Context>();
 
 /**

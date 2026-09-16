@@ -1,11 +1,13 @@
 import sdk from '@basementuniverse/jsonpad-sdk';
 
 export type {
+  Event,
   Identity,
   Index,
   Item,
   List,
   PaginatedResponse,
+  SearchResult,
   MoveListsChange,
   MoveListsResult,
   ResponseMeta,

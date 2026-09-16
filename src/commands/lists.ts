@@ -1,13 +1,14 @@
 import type { Command } from 'commander';
 import type { Context } from '../context.ts';
+import { CliError } from '../errors.ts';
 import { canPrompt, confirm, readJsonInput } from '../input.ts';
 import {
   addOutputOptions,
   formatFlags,
   formatNumber,
   formatTimestamp,
-  printPage,
   printRecord,
+  printRecords,
   resolveOutputFormat,
   type OutputOptions,
   type RecordOutput,
@@ -15,17 +16,20 @@ import {
 } from '../output.ts';
 import {
   addBooleanOption,
+  addAllOption,
   addPagingOptions,
   addTaggedOption,
   addTagsOption,
   nullable,
-  pagingParameters,
   readBody,
   removeUndefined,
+  printPages,
   request,
+  type AllOptions,
   type PagingOptions,
 } from '../resources.ts';
-import type { List } from '../sdk.ts';
+import type { List, SearchResult } from '../sdk.ts';
+import { defineEventCommands, defineStatsCommand } from './history.ts';
 
 const FLAGS = [
   'pinned',
@@ -193,28 +197,31 @@ export function defineLists(command: Command, context: Context): Command {
       `Only lists that aren't ${flag}`
     );
   }
+  addAllOption(list);
   addPagingOptions(list, { choices: ORDER_FIELDS });
   addOutputOptions(list).action(
     async (
       options: PagingOptions &
+        AllOptions &
         OutputOptions &
         ListFields & { tagged?: string[] }
     ) => {
-      const format = resolveOutputFormat(context, options);
       const jsonpad = context.createClient();
-      const page = await request(context, () =>
-        jsonpad.fetchLists(
-          removeUndefined({
-            ...pagingParameters(options),
-            name: options.name,
-            pathName: options.pathName,
-            tagged: options.tagged,
-            ...Object.fromEntries(FLAGS.map(flag => [flag, options[flag]])),
-          }) as Parameters<typeof jsonpad.fetchLists>[0]
-        )
+      await printPages(
+        context,
+        options,
+        paging =>
+          jsonpad.fetchLists(
+            removeUndefined({
+              ...paging,
+              name: options.name,
+              pathName: options.pathName,
+              tagged: options.tagged,
+              ...Object.fromEntries(FLAGS.map(flag => [flag, options[flag]])),
+            }) as Parameters<typeof jsonpad.fetchLists>[0]
+          ),
+        listOutput(context)
       );
-
-      printPage(context, format, page, listOutput(context));
     }
   );
 
@@ -298,6 +305,101 @@ export function defineLists(command: Command, context: Context): Command {
         `Deleted the list ${context.colours.bold(listId)}. Its items and indexes are being deleted in the background`
       );
     });
+
+  addOutputOptions(
+    command
+      .command('search')
+      .description(
+        "Search a list's items, using the indexes that allow searching"
+      )
+      .argument('<list>', 'The list (id or path name)')
+      .argument('<query>', 'What to search for, 3 to 100 characters')
+      .option('--include-items', 'Include the items, not just their ids')
+      .option(
+        '--include-data',
+        "With --include-items, include each item's data"
+      )
+      .option(
+        '--include-guarded',
+        'Include guarded values in the item data, for items the identity making the request owns'
+      )
+  ).action(
+    async (
+      listId: string,
+      query: string,
+      options: OutputOptions & {
+        includeItems?: boolean;
+        includeData?: boolean;
+        includeGuarded?: boolean;
+      }
+    ) => {
+      const format = resolveOutputFormat(context, options);
+
+      // The API's own error for this is a raw validation error
+      if (query.length < 3 || query.length > 100) {
+        throw new CliError(
+          'The search query must be from 3 to 100 characters long'
+        );
+      }
+
+      const jsonpad = context.createClient();
+      const results = await request(context, () =>
+        jsonpad.searchList(
+          listId,
+          query,
+          removeUndefined({
+            includeItems: options.includeItems,
+            includeData: options.includeData,
+            includeGuarded: options.includeGuarded,
+          })
+        )
+      );
+      const idOf = (result: SearchResult) =>
+        'item' in result ? result.item.id : result.id;
+
+      printRecords(context, format, results, {
+        id: idOf,
+        columns: [
+          {
+            header: 'RELEVANCE',
+            value: result => result.relevance.toFixed(3),
+          },
+          { header: 'ID', value: idOf },
+          ...(options.includeItems
+            ? [
+                {
+                  header: 'DESCRIPTION',
+                  value: (result: SearchResult) =>
+                    ('item' in result && result.item.description) || '-',
+                },
+              ]
+            : []),
+        ],
+        empty: 'Nothing found',
+      });
+    }
+  );
+
+  const target = {
+    arguments: [['<list>', 'The list (id or path name)']] as [string, string][],
+  };
+
+  defineStatsCommand(command, context, {
+    ...target,
+    description: "Show a list's stats: its items, indexes and events, by day",
+    fetch: (jsonpad, [listId], parameters) =>
+      jsonpad.fetchListStats(listId, parameters),
+  });
+
+  defineEventCommands(command, context, {
+    ...target,
+    noun: 'list',
+    types: ['list-created', 'list-updated', 'list-deleted'],
+    fetchEvents: (jsonpad, [listId], parameters) =>
+      jsonpad.fetchListEvents(listId, parameters),
+    fetchEvent: (jsonpad, [listId], eventId, parameters) =>
+      jsonpad.fetchListEvent(listId, eventId, parameters),
+  });
 
   return command;
 }
