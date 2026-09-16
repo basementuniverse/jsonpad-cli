@@ -7,7 +7,7 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
-## [Unreleased]
+## [1.3.0] - 2026-09-16
 
 ### Removed
 
