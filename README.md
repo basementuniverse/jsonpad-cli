@@ -6,6 +6,9 @@ Use it to manage lists, indexes, items and identities from the command line,
 and to sync schema documents (lists and their indexes) with your account, e.g.
 in a deploy script or CI.
 
+There's a guide to it in the JSONPad docs:
+[Command line tool](https://jsonpad.io/docs/command-line-tool).
+
 ## Install
 
 The tool needs Node.js 22.12 or later.
@@ -314,9 +317,9 @@ The schema commands (`sync-schema`, `export-schema`, `move-lists`) and
 
 ## Moving from the SDK's `jsonpad` command
 
-Versions 1.12 and 1.13 of `@basementuniverse/jsonpad-sdk` include a `jsonpad`
-command. It's deprecated, and it will be removed in SDK 2.0.0. This package has
-the same commands, options, output and exit codes, so to switch, replace
+Versions 1.12 to 1.14 of `@basementuniverse/jsonpad-sdk` included a `jsonpad`
+command, which was removed in SDK 2.0.0. This package has the same commands,
+options, output and exit codes, so to switch, replace
 `npx @basementuniverse/jsonpad-sdk` with `npx @basementuniverse/jsonpad-cli`.
 
 If you installed the SDK globally to get the command, uninstall it first.
@@ -339,15 +342,10 @@ npm run reference   # regenerates REFERENCE.md after changing a command
 `npm test` fails when `REFERENCE.md` is out of date.
 
 The parity tests check that the commands ported from the SDK behave exactly as
-the SDK's `bin/jsonpad.js` does. They run each scenario against a fake API and
-compare the output, exit code, requests and files against golden files in
-`test/parity/golden`. Those files were recorded from the SDK's command with:
-
-```bash
-npm run record-parity -- ../jsonpad-sdk-js/bin/jsonpad.js
-```
-
-Only re-record them to add scenarios while the SDK still has its command.
+the SDK's command did. They run each scenario against a fake API and compare
+the output, exit code, requests and files against golden files in
+`test/parity/golden`, which were recorded from the SDK's command before it was
+removed.
 
 ### Publishing
 

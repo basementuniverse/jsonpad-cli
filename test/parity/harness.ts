@@ -177,8 +177,6 @@ export async function runScenario(
         JSONPAD_CONFIG: path.join(cwd, '.jsonpad', 'config.json'),
         ...(scenario.noToken ? {} : { JSONPAD_TOKEN: 'test-token' }),
         JSONPAD_API_URL: api,
-        // Keeps the legacy command's deprecation notice out of recordings
-        JSONPAD_NO_DEPRECATION: '1',
         ...Object.fromEntries(
           Object.entries(scenario.env ?? {}).map(([name, value]) => [
             name,

@@ -35,14 +35,12 @@
     "build": "rm -rf build && tsc -p tsconfig.build.json && chmod +x build/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test \"test/**/*.test.ts\"",
-    "reference": "node scripts/generate-reference.ts",
-    "record-parity": "npm run build && node scripts/record-parity.ts"
+    "reference": "node scripts/generate-reference.ts"
   },
   "dependencies": {
     "@basementuniverse/jsonpad-realtime-sdk": "^1.6.0",
-    "@basementuniverse/jsonpad-sdk": "^1.14.1",
-    "commander": "^15.0.0",
-    "xmlhttprequest-ssl": "~2.1.2"
+    "@basementuniverse/jsonpad-sdk": "^2.0.0",
+    "commander": "^15.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.3",

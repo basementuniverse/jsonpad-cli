@@ -7,6 +7,14 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
+## [Unreleased]
+
+### Removed
+
+- The `xmlhttprequest-ssl` dependency. `jsonpad listen` needed it only because
+  `@basementuniverse/jsonpad-realtime-sdk` couldn't connect from Node before
+  version 1.6.0.
+
 ## [1.2.0] - 2026-09-16
 
 ### Added

@@ -1,8 +1,8 @@
 /**
  * The four commands ported from @basementuniverse/jsonpad-sdk's bin must
  * behave exactly as they did there: the same output, exit codes, API requests
- * and files. The golden files were recorded from that bin with
- * scripts/record-parity.ts
+ * and files. The golden files were recorded from that bin, which was removed in
+ * SDK 2.0.0, so they can't be recorded again: change them only by hand
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
