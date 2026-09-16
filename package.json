@@ -1,6 +1,6 @@
 {
   "name": "@basementuniverse/jsonpad-cli",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Command line tool for JSONPad",
   "author": "Gordon Larrigan <gordonlarrigan@gmail.com> (https://gordonlarrigan.com)",
   "license": "MIT",
