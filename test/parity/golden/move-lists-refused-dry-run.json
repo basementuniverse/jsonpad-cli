@@ -1,0 +1,24 @@
+{
+  "exitCode": 1,
+  "stdout": "Move lists plan (dry run) to scope cookbook-app\n\n> list recipes move recipe-app -> cookbook-app (2 indexes)\n    tags: [\"recipe-app\"] -> [\"cookbook-app\"]\n! list missing error\n    error: List not found\n\n1 to move, 0 to assign, 0 to release, 0 unchanged, 1 with errors\n",
+  "stderr": "A real move would be refused: The move was refused because a change has errors\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema/move",
+      "query": {
+        "dryRun": [
+          "true"
+        ]
+      },
+      "body": {
+        "lists": [
+          "recipes",
+          "missing"
+        ],
+        "scope": "cookbook-app"
+      }
+    }
+  ],
+  "files": {}
+}

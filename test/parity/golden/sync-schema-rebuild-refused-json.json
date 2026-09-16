@@ -1,0 +1,27 @@
+{
+  "exitCode": 2,
+  "stdout": "{\n  \"syncId\": \"sync-1\",\n  \"dryRun\": false,\n  \"applied\": false,\n  \"prune\": false,\n  \"scope\": null,\n  \"summary\": {\n    \"create\": 0,\n    \"update\": 1,\n    \"adopt\": 0,\n    \"delete\": 0,\n    \"noChange\": 0,\n    \"error\": 0,\n    \"builds\": 1,\n    \"destructive\": 0\n  },\n  \"changes\": [\n    {\n      \"resourceType\": \"index\",\n      \"list\": \"ratings\",\n      \"index\": \"score\",\n      \"action\": \"update\",\n      \"fields\": {\n        \"pointer\": {\n          \"from\": \"/score\",\n          \"to\": \"/stars\"\n        }\n      },\n      \"build\": {\n        \"reason\": \"pointerChanged\",\n        \"items\": 42,\n        \"requiresConfirmation\": true\n      }\n    }\n  ],\n  \"blockedBy\": {\n    \"name\": \"SCHEMA_SYNC_REBUILD_NOT_ALLOWED\",\n    \"code\": 13003,\n    \"message\": \"This sync rebuilds indexes in lists that have items (pass allowRebuild=true to allow this)\"\n  }\n}\n",
+  "stderr": "This sync rebuilds indexes in lists that have items. Run again with --allow-rebuild to allow this\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {},
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "files": {}
+}

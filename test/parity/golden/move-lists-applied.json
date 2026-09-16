@@ -1,0 +1,17 @@
+{
+  "exitCode": 0,
+  "stdout": "Move lists to scope cookbook-app\n\n> list recipes move recipe-app -> cookbook-app (2 indexes)\n    tags: [\"recipe-app\"] -> [\"cookbook-app\"]\n+ list ratings assign no scope -> cookbook-app (1 index)\n    warning: This list has no indexes the scope manages yet\n= list authors no change (0 indexes)\n\n1 to move, 1 to assign, 0 to release, 1 unchanged\nApplied\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema/move",
+      "query": {},
+      "body": {
+        "fromScope": "recipe-app",
+        "scope": "cookbook-app"
+      }
+    }
+  ],
+  "files": {}
+}

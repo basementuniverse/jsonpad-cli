@@ -1,0 +1,39 @@
+{
+  "exitCode": 0,
+  "stdout": "Schema sync for scope recipe-app\n\n+ index recipes/title create (build: 3 items)\n+ index recipes/author create (build: 3 items)\n+ index recipes/empty create (build: 0 items)\n\n2 to create, 0 to update, 0 to adopt, 0 unchanged\nApplied\nWaiting for index recipes/title to build... ready\nWaiting for index recipes/author to build... ready\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {},
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/lists/l1/indexes/i1",
+      "query": {},
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/lists/l1/indexes/i2",
+      "query": {},
+      "body": null
+    }
+  ],
+  "files": {}
+}

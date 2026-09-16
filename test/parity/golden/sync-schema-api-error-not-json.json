@@ -1,0 +1,27 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "The API responded with status 502\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {},
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "files": {}
+}

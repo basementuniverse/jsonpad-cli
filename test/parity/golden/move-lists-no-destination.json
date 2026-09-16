@@ -1,0 +1,7 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "Pass either --to <scope> or --release. Usage: jsonpad move-lists [list...] (--to <scope> | --release) [--from-scope <scope>]\n",
+  "requests": [],
+  "files": {}
+}

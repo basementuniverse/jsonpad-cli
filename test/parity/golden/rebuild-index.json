@@ -1,0 +1,14 @@
+{
+  "exitCode": 0,
+  "stdout": "Rebuilding index recipes/title\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/lists/recipes/indexes/title/rebuild",
+      "query": {},
+      "body": null
+    }
+  ],
+  "files": {}
+}

@@ -1,0 +1,7 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "Usage: jsonpad rebuild-index <list> <index>\n",
+  "requests": [],
+  "files": {}
+}

@@ -1,0 +1,27 @@
+{
+  "exitCode": 2,
+  "stdout": "Schema sync\n\n~ index ratings/score update (rebuild: 42 items, needs --allow-rebuild)\n    pointer: \"/score\" -> \"/stars\"\n\n0 to create, 1 to update, 0 to adopt, 0 unchanged\n",
+  "stderr": "This sync rebuilds indexes in lists that have items. Run again with --allow-rebuild to allow this\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {},
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "files": {}
+}

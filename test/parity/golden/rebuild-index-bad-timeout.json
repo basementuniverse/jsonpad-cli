@@ -1,0 +1,14 @@
+{
+  "exitCode": 1,
+  "stdout": "Rebuilding index recipes/title\n",
+  "stderr": "--timeout must be a number of seconds\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/lists/recipes/indexes/title/rebuild",
+      "query": {},
+      "body": null
+    }
+  ],
+  "files": {}
+}

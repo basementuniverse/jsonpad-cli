@@ -1,0 +1,19 @@
+{
+  "exitCode": 0,
+  "stdout": "Move lists out of their scope\n\n- list recipes release recipe-app -> no scope (2 indexes)\n\n0 to move, 0 to assign, 1 to release, 0 unchanged\nApplied\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema/move",
+      "query": {},
+      "body": {
+        "lists": [
+          "recipes"
+        ],
+        "scope": null
+      }
+    }
+  ],
+  "files": {}
+}

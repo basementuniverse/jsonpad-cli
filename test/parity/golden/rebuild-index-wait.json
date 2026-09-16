@@ -1,0 +1,20 @@
+{
+  "exitCode": 0,
+  "stdout": "Rebuilding index recipes/title\nWaiting for index recipes/title to build... ready\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/lists/recipes/indexes/title/rebuild",
+      "query": {},
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/lists/recipes/indexes/i1",
+      "query": {},
+      "body": null
+    }
+  ],
+  "files": {}
+}

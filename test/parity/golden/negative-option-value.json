@@ -1,0 +1,7 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "Option '--timeout' argument is ambiguous.\nDid you forget to specify the option argument for '--timeout'?\nTo specify an option argument starting with a dash use '--timeout=-XYZ'.. Run jsonpad --help for usage\n",
+  "requests": [],
+  "files": {}
+}

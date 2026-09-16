@@ -1,0 +1,16 @@
+{
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": "warning: List \"Untitled\" has no path name, so it was left out\nWrote 2 lists to schema.json\n",
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/sync-schema",
+      "query": {},
+      "body": null
+    }
+  ],
+  "files": {
+    "schema.json": "{\n  \"$schema\": \"https://api.jsonpad.io/schemas/sync-schema.json\",\n  \"scope\": \"recipe-app\",\n  \"lists\": {\n    \"recipes\": {\n      \"name\": \"Recipes\",\n      \"tags\": [\n        \"recipe-app\"\n      ],\n      \"indexes\": {\n        \"title\": {\n          \"pointer\": \"/title\",\n          \"valueType\": \"string\"\n        }\n      }\n    },\n    \"ratings\": {\n      \"name\": \"Ratings\",\n      \"tags\": [\n        \"recipe-app\"\n      ]\n    }\n  }\n}\n"
+  }
+}

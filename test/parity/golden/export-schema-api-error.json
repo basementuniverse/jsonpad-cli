@@ -1,0 +1,14 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "This token can't sync schemas\n",
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/sync-schema",
+      "query": {},
+      "body": null
+    }
+  ],
+  "files": {}
+}

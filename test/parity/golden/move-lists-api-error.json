@@ -1,0 +1,19 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "scope is invalid\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema/move",
+      "query": {},
+      "body": {
+        "lists": [
+          "recipes"
+        ],
+        "scope": "Not A Valid Scope"
+      }
+    }
+  ],
+  "files": {}
+}

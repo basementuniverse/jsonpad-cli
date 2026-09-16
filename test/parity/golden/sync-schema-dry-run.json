@@ -1,0 +1,31 @@
+{
+  "exitCode": 0,
+  "stdout": "Schema sync plan (dry run) for scope recipe-app\n\n+ list recipes create\n    name: \"Recipes\"\n    description: \"A description that is long enough to be shortened when i...\n+ index recipes/title create (build: 0 items)\n    pointer: \"/title\"\n~ list ratings update\n    realtime: false -> true\n~ index ratings/score update (rebuild: 1 item)\n    pointer: \"/score\" -> \"/stars\"\n@ list authors adopt\n= index tags/name no change\n    warning: The last build of this index failed\n\n2 to create, 2 to update, 1 to adopt, 2 unchanged\nNot applied (dry run)\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {
+        "dryRun": [
+          "true"
+        ]
+      },
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "files": {}
+}

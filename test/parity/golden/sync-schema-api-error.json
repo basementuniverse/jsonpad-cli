@@ -1,0 +1,27 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "The schema document is invalid\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {},
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "files": {}
+}

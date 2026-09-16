@@ -1,0 +1,7 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "Option '--scope <value>' argument missing. Run jsonpad --help for usage\n",
+  "requests": [],
+  "files": {}
+}

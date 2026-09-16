@@ -1,0 +1,27 @@
+{
+  "exitCode": 0,
+  "stdout": "Schema sync for scope recipe-app\n\nNothing to change\n\n0 to create, 0 to update, 0 to adopt, 2 unchanged\nAlready up to date\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {},
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "files": {}
+}

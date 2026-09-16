@@ -1,0 +1,19 @@
+{
+  "exitCode": 0,
+  "stdout": "{\n  \"moveId\": \"move-1\",\n  \"dryRun\": false,\n  \"applied\": true,\n  \"scope\": null,\n  \"summary\": {\n    \"move\": 0,\n    \"assign\": 0,\n    \"release\": 1,\n    \"noChange\": 0,\n    \"error\": 0\n  },\n  \"changes\": [\n    {\n      \"list\": \"recipes\",\n      \"listId\": \"l1\",\n      \"action\": \"release\",\n      \"from\": \"recipe-app\",\n      \"to\": null,\n      \"indexes\": 2\n    }\n  ],\n  \"warnings\": [],\n  \"blockedBy\": null\n}\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema/move",
+      "query": {},
+      "body": {
+        "lists": [
+          "recipes"
+        ],
+        "scope": null
+      }
+    }
+  ],
+  "files": {}
+}

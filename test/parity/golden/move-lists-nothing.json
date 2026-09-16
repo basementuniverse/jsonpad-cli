@@ -1,0 +1,17 @@
+{
+  "exitCode": 0,
+  "stdout": "Move lists to scope cookbook-app\n\nNo lists to move\n\n0 to move, 0 to assign, 0 to release, 0 unchanged\nNothing to change\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema/move",
+      "query": {},
+      "body": {
+        "fromScope": "nope",
+        "scope": "cookbook-app"
+      }
+    }
+  ],
+  "files": {}
+}

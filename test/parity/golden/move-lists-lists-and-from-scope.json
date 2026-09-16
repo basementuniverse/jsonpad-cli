@@ -1,0 +1,7 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "Name the lists to move, or pass --from-scope, but not both. Usage: jsonpad move-lists [list...] (--to <scope> | --release) [--from-scope <scope>]\n",
+  "requests": [],
+  "files": {}
+}

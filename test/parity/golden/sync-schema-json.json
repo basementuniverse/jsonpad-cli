@@ -1,0 +1,31 @@
+{
+  "exitCode": 0,
+  "stdout": "{\n  \"syncId\": \"sync-1\",\n  \"dryRun\": true,\n  \"applied\": false,\n  \"prune\": false,\n  \"scope\": \"recipe-app\",\n  \"summary\": {\n    \"create\": 2,\n    \"update\": 2,\n    \"adopt\": 1,\n    \"delete\": 0,\n    \"noChange\": 2,\n    \"error\": 0,\n    \"builds\": 2,\n    \"destructive\": 0\n  },\n  \"changes\": [\n    {\n      \"resourceType\": \"list\",\n      \"list\": \"recipes\",\n      \"action\": \"create\",\n      \"fields\": {\n        \"name\": {\n          \"from\": null,\n          \"to\": \"Recipes\"\n        },\n        \"description\": {\n          \"from\": null,\n          \"to\": \"A description that is long enough to be shortened when it is shown\"\n        }\n      }\n    },\n    {\n      \"resourceType\": \"index\",\n      \"list\": \"recipes\",\n      \"index\": \"title\",\n      \"action\": \"create\",\n      \"fields\": {\n        \"pointer\": {\n          \"from\": null,\n          \"to\": \"/title\"\n        }\n      },\n      \"build\": {\n        \"reason\": \"created\",\n        \"items\": 0,\n        \"requiresConfirmation\": false\n      }\n    },\n    {\n      \"resourceType\": \"list\",\n      \"list\": \"ratings\",\n      \"listId\": \"l2\",\n      \"action\": \"update\",\n      \"fields\": {\n        \"realtime\": {\n          \"from\": false,\n          \"to\": true\n        }\n      }\n    },\n    {\n      \"resourceType\": \"index\",\n      \"list\": \"ratings\",\n      \"index\": \"score\",\n      \"action\": \"update\",\n      \"fields\": {\n        \"pointer\": {\n          \"from\": \"/score\",\n          \"to\": \"/stars\"\n        }\n      },\n      \"build\": {\n        \"reason\": \"pointerChanged\",\n        \"items\": 1,\n        \"requiresConfirmation\": false\n      }\n    },\n    {\n      \"resourceType\": \"list\",\n      \"list\": \"authors\",\n      \"action\": \"adopt\"\n    },\n    {\n      \"resourceType\": \"list\",\n      \"list\": \"tags\",\n      \"action\": \"no-change\"\n    },\n    {\n      \"resourceType\": \"index\",\n      \"list\": \"tags\",\n      \"index\": \"name\",\n      \"action\": \"no-change\",\n      \"warnings\": [\n        \"The last build of this index failed\"\n      ]\n    }\n  ],\n  \"blockedBy\": null\n}\n",
+  "stderr": "",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {
+        "dryRun": [
+          "true"
+        ]
+      },
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "files": {}
+}

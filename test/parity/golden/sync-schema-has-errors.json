@@ -1,0 +1,27 @@
+{
+  "exitCode": 1,
+  "stdout": "Schema sync for scope recipe-app\n\n+ list recipes create\n! index recipes/title error\n    error: pointer is required\n    error: valueType is invalid\n\n1 to create, 0 to update, 0 to adopt, 0 unchanged, 1 with errors\n",
+  "stderr": "The sync was refused because a change has errors\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {},
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "files": {}
+}

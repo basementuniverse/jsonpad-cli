@@ -1,0 +1,14 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "Only an index whose last build failed can be rebuilt\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/lists/recipes/indexes/title/rebuild",
+      "query": {},
+      "body": null
+    }
+  ],
+  "files": {}
+}

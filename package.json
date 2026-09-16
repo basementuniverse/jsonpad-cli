@@ -1,0 +1,49 @@
+{
+  "name": "@basementuniverse/jsonpad-cli",
+  "version": "1.0.0",
+  "description": "Command line tool for JSONPad",
+  "author": "Gordon Larrigan <gordonlarrigan@gmail.com> (https://gordonlarrigan.com)",
+  "license": "MIT",
+  "homepage": "https://github.com/basementuniverse/jsonpad-cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basementuniverse/jsonpad-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/basementuniverse/jsonpad-cli/issues"
+  },
+  "keywords": [
+    "jsonpad",
+    "cli",
+    "json"
+  ],
+  "type": "module",
+  "bin": {
+    "jsonpad": "build/cli.js"
+  },
+  "files": [
+    "build",
+    "README.md",
+    "REFERENCE.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "rm -rf build && tsc -p tsconfig.build.json && chmod +x build/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test \"test/**/*.test.ts\"",
+    "reference": "node scripts/generate-reference.ts",
+    "record-parity": "npm run build && node scripts/record-parity.ts"
+  },
+  "dependencies": {
+    "@basementuniverse/jsonpad-sdk": "^1.13.0",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.3",
+    "typescript": "^7.0.2"
+  }
+}

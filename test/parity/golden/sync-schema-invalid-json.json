@@ -1,0 +1,7 @@
+{
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "Can't read jsonpad-schema.json: Unexpected end of JSON input\n",
+  "requests": [],
+  "files": {}
+}

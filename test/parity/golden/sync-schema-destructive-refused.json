@@ -1,0 +1,34 @@
+{
+  "exitCode": 4,
+  "stdout": "Schema sync plan (dry run) for scope recipe-app\n\n- list old-recipes delete (12 items, 1 index, needs --allow-destructive)\n- index recipes/secret delete\n\n0 to create, 0 to update, 0 to adopt, 2 to delete, 1 unchanged\n",
+  "stderr": "A real sync would be refused: This prune deletes lists that have items. Run again with --allow-destructive to allow this\n",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/sync-schema",
+      "query": {
+        "dryRun": [
+          "true"
+        ],
+        "prune": [
+          "true"
+        ]
+      },
+      "body": {
+        "scope": "recipe-app",
+        "lists": {
+          "recipes": {
+            "name": "Recipes",
+            "indexes": {
+              "title": {
+                "pointer": "/title",
+                "valueType": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "files": {}
+}
