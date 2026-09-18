@@ -187,7 +187,8 @@ export function sdkPointer(pointer: string | undefined): string | undefined {
   return pointer === undefined ? undefined : pointer.replace(/^\/+/, '');
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Find an identity's id from what was passed on the command line: its id,

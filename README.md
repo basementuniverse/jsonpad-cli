@@ -98,7 +98,7 @@ jsonpad items data patch recipes pancakes --patch @changes.json
 jsonpad items data delete recipes pancakes /ingredients/0
 
 # Identities, by id or group/name. Passwords are asked for, or read from stdin
-jsonpad identities create --group staff --name ada
+jsonpad identities create --group staff --name ada --email ada@example.com
 jsonpad identities get staff/ada
 jsonpad identities update staff/ada --display-name Ada --password
 ```
@@ -182,7 +182,54 @@ jsonpad identities logout
 `login -o env` sets `JSONPAD_IDENTITY_TOKEN` (and `JSONPAD_IDENTITY_GROUP`).
 While it's set, commands that work with items send the identity along with
 the API token. Passwords are asked for in a terminal, or read from stdin or
-`JSONPAD_IDENTITY_PASSWORD`.
+`JSONPAD_IDENTITY_PASSWORD`. An identity can log in with its email address
+instead of its name (`--email`), and `logout --all` ends its sessions
+everywhere.
+
+Changing an identity's own password or email address needs its current
+password, which is asked for with `--current-password`, or read from
+`JSONPAD_IDENTITY_CURRENT_PASSWORD`:
+
+```bash
+jsonpad identities self update --email zed@example.com --current-password
+jsonpad identities self providers          # accounts it can sign in with
+jsonpad identities self providers unlink google
+```
+
+### Password reset and email verification
+
+JSONPad never sends email. It issues a single-use token, and your app sends it
+to whoever owns the identity, with your own branding. Both halves of that flow
+are here, for a server or a support script:
+
+```bash
+# Issue a reset token: by id, group/name, or --email
+jsonpad identities password-reset request players/zed
+jsonpad identities password-reset request --group players --email zed@example.com
+
+# ...send it to them, then set the new password with it
+jsonpad identities password-reset confirm <token>
+
+# The same for verifying an email address
+jsonpad identities email-verification request players/zed
+jsonpad identities email-verification confirm <token>
+```
+
+Requesting a token needs the API token's `reset-password` or `verify-email`
+permission. If the identity group sends tokens to a webhook, the request
+answers `delivery: webhook` and the token goes there instead.
+
+### Signing in with Google, GitHub and others
+
+Providers are set up per identity group in the dashboard, and the sign-in
+itself happens in a browser. From here you can see what's enabled, and manage
+the accounts an identity can sign in with:
+
+```bash
+jsonpad identities providers --group players
+jsonpad identities self providers
+jsonpad identities self providers unlink github
+```
 
 ### Realtime events
 

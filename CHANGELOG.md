@@ -7,6 +7,35 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
+## [Unreleased]
+
+Needs `@basementuniverse/jsonpad-sdk` 2.1.0, and the JSONPad API release with
+identity email addresses, password reset and provider sign-in.
+
+### Added
+
+- `--email` on `jsonpad identities create`, `update`, `register` and
+  `self update`, with `--no-email` to remove an address. Identities show their
+  email address, whether it's verified, and whether they have a password.
+- `jsonpad identities login --email`, to log in with an email address instead
+  of a name, and `jsonpad identities logout --all`, to end an identity's
+  sessions everywhere.
+- `jsonpad identities password-reset request|confirm` and
+  `jsonpad identities email-verification request|confirm`, for issuing
+  single-use tokens and using them.
+- `jsonpad identities providers`, listing the sign-in providers enabled for an
+  identity group, and `jsonpad identities self providers` with `list` and
+  `unlink`, for the accounts an identity can sign in with.
+- The identity event types added by the API: sessions revoked, password reset,
+  email verification and linked accounts.
+
+### Changed
+
+- `jsonpad identities self update` takes `--current-password`, which the API
+  now needs before it changes an identity's password or email address (unless
+  the identity has no password). It's read from
+  `JSONPAD_IDENTITY_CURRENT_PASSWORD`, or asked for in a terminal.
+
 ## [1.3.0] - 2026-09-16
 
 ### Removed

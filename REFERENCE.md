@@ -58,7 +58,14 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 - [`jsonpad identities logout`](#jsonpad-identities-logout): Log out the identity in JSONPAD_IDENTITY_TOKEN, so that its token stops working
 - [`jsonpad identities self get`](#jsonpad-identities-self-get): Show the identity in JSONPAD_IDENTITY_TOKEN (the default when no command is given)
 - [`jsonpad identities self update`](#jsonpad-identities-self-update): Change the identity in JSONPAD_IDENTITY_TOKEN. Fields that aren't given are left as they are
+- [`jsonpad identities self providers list`](#jsonpad-identities-self-providers-list): List the accounts the identity can sign in with (the default when no command is given)
+- [`jsonpad identities self providers unlink`](#jsonpad-identities-self-providers-unlink): Stop the identity signing in with a provider account
 - [`jsonpad identities self delete`](#jsonpad-identities-self-delete): Delete the identity in JSONPAD_IDENTITY_TOKEN
+- [`jsonpad identities password-reset request`](#jsonpad-identities-password-reset-request): Issue a password reset token for an identity
+- [`jsonpad identities password-reset confirm`](#jsonpad-identities-password-reset-confirm): Set a new password with a reset token
+- [`jsonpad identities email-verification request`](#jsonpad-identities-email-verification-request): Issue an email verification token for an identity
+- [`jsonpad identities email-verification confirm`](#jsonpad-identities-email-verification-confirm): Verify an identity's email address with a token
+- [`jsonpad identities providers`](#jsonpad-identities-providers): List an identity group's sign-in providers
 - [`jsonpad identities stats`](#jsonpad-identities-stats): Show an identity's events, by day
 - [`jsonpad identities events`](#jsonpad-identities-events): List an identity's events, newest first by default
 - [`jsonpad identities event`](#jsonpad-identities-event): Show one of an identity's events
@@ -1050,6 +1057,7 @@ jsonpad identities create [options]
 | `--group <group>` | The group, which separates identities with the same name |
 | `--name <name>` | The name, used to log in |
 | `--display-name <name>` | The name to show |
+| `--email <email>` | The email address, which can also be used to log in |
 | `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
 | `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
 | `--json` | Output JSON (the same as --output json) |
@@ -1072,8 +1080,10 @@ jsonpad identities update [options] <identity>
 | `--group <group>` | The group, which separates identities with the same name |
 | `--name <name>` | The name, used to log in |
 | `--display-name <name>` | The name to show |
+| `--email <email>` | The email address, which can also be used to log in |
 | `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
 | `--no-display-name` | Remove the display name |
+| `--no-email` | Remove the email address |
 | `--password` | Change the password: asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD |
 | `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
 | `--json` | Output JSON (the same as --output json) |
@@ -1108,6 +1118,7 @@ jsonpad identities register [options]
 | `--group <group>` | The group |
 | `--name <name>` | The name, used to log in |
 | `--display-name <name>` | The name to show |
+| `--email <email>` | The email address, which can also be used to log in |
 | `--tags <tags>` | Comma-separated tags, replacing any it has (repeatable; pass "" to remove them all) |
 | `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
 | `--json` | Output JSON (the same as --output json) |
@@ -1125,6 +1136,7 @@ jsonpad identities login [options]
 | --- | --- |
 | `--group <group>` | The identity's group |
 | `--name <name>` | The identity's name |
+| `--email <email>` | The identity's email address, instead of a name |
 | `-o, --output <format>` | Output format: table (the default in a terminal), json (the default otherwise), env (export commands for a POSIX shell), or token (just the token) (one of: table, json, env, token) |
 
 ### `jsonpad identities logout`
@@ -1134,6 +1146,10 @@ Log out the identity in JSONPAD_IDENTITY_TOKEN, so that its token stops working
 ```
 jsonpad identities logout [options]
 ```
+
+| Option | Description |
+| --- | --- |
+| `--all` | Log the identity out everywhere, ending its sessions on every device |
 
 ### `jsonpad identities self get`
 
@@ -1162,10 +1178,43 @@ jsonpad identities self update [options]
 | `--name <name>` | The name, used to log in |
 | `--display-name <name>` | The name to show |
 | `--no-display-name` | Remove the display name |
+| `--email <email>` | The email address, which needs verifying again |
+| `--no-email` | Remove the email address |
 | `--password` | Change the password: asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD |
+| `--current-password` | The identity's current password, needed to change its password or email address. Asked for in a terminal, or read from JSONPAD_IDENTITY_CURRENT_PASSWORD |
 | `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
 | `--json` | Output JSON (the same as --output json) |
 | `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities self providers list`
+
+List the accounts the identity can sign in with (the default when no command is given)
+
+```
+jsonpad identities self providers list [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities self providers unlink`
+
+Stop the identity in JSONPAD_IDENTITY_TOKEN signing in with a provider account. An identity's last way of signing in can't be removed: set a password first, or link another account
+
+```
+jsonpad identities self providers unlink [options] <provider>
+```
+
+| Argument | Description |
+| --- | --- |
+| `provider` | The provider, e.g. google |
+
+| Option | Description |
+| --- | --- |
+| `-y, --yes` | Don't ask for confirmation |
 
 ### `jsonpad identities self delete`
 
@@ -1178,6 +1227,97 @@ jsonpad identities self delete [options]
 | Option | Description |
 | --- | --- |
 | `-y, --yes` | Don't ask for confirmation |
+
+### `jsonpad identities password-reset request`
+
+Issue a single-use password reset token for an identity, to send to whoever owns it. JSONPad never sends email itself. The token is returned unless the identity group delivers tokens to a webhook. This needs the token's reset-password permission
+
+```
+jsonpad identities password-reset request [options] [identity]
+```
+
+| Argument | Description |
+| --- | --- |
+| `identity` (optional) | The identity: its id, group/name, or the name of an identity without a group |
+
+| Option | Description |
+| --- | --- |
+| `--group <group>` | The identity's group |
+| `--email <email>` | The identity's email address, instead of a name |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities password-reset confirm`
+
+Set a new password for the identity the reset token was issued for, which logs it out everywhere. The password is asked for in a terminal, or read from stdin or JSONPAD_IDENTITY_PASSWORD
+
+```
+jsonpad identities password-reset confirm [options] <token>
+```
+
+| Argument | Description |
+| --- | --- |
+| `token` | The reset token, which can only be used once |
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities email-verification request`
+
+Issue a single-use email verification token for an identity, to send to the address being verified. This needs the token's verify-email permission
+
+```
+jsonpad identities email-verification request [options] [identity]
+```
+
+| Argument | Description |
+| --- | --- |
+| `identity` (optional) | The identity: its id, group/name, or the name of an identity without a group |
+
+| Option | Description |
+| --- | --- |
+| `--group <group>` | The identity's group |
+| `--email <email>` | The identity's email address, instead of a name |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities email-verification confirm`
+
+Mark an identity's email address as verified, using a verification token
+
+```
+jsonpad identities email-verification confirm [options] <token>
+```
+
+| Argument | Description |
+| --- | --- |
+| `token` | The verification token, which can only be used once |
+
+| Option | Description |
+| --- | --- |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad identities providers`
+
+List the sign-in providers enabled for an identity group, e.g. to see what an app's sign-in page would show. Set them up in the dashboard
+
+```
+jsonpad identities providers [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `--group <group>` | The identity group |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
 
 ### `jsonpad identities stats`
 
@@ -1211,7 +1351,7 @@ jsonpad identities events [options] <identity>
 
 | Option | Description |
 | --- | --- |
-| `--type <type>` | Only events of this type (one of: identity-created, identity-updated, identity-deleted, identity-registered, identity-logged-in, identity-logged-out, identity-updated-self, identity-deleted-self) |
+| `--type <type>` | Only events of this type (one of: identity-created, identity-updated, identity-deleted, identity-registered, identity-logged-in, identity-logged-out, identity-updated-self, identity-deleted-self, identity-sessions-revoked, identity-password-reset-requested, identity-password-reset, identity-email-verification-requested, identity-email-verified, identity-provider-linked, identity-provider-unlinked) |
 | `--start-at <date>` | Only events at or after this date, e.g. 2026-09-01 |
 | `--end-at <date>` | Only events at or before this date |
 | `--include-snapshot` | Include the identity as it was after each event |

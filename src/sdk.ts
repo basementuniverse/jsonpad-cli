@@ -3,6 +3,9 @@ import sdk from '@basementuniverse/jsonpad-sdk';
 export type {
   Event,
   Identity,
+  IdentityOAuthProvider,
+  IdentityProviderAccount,
+  IdentityTokenRequestResult,
   Index,
   Item,
   List,

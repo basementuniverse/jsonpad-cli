@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@basementuniverse/jsonpad-realtime-sdk": "^1.6.0",
-    "@basementuniverse/jsonpad-sdk": "^2.0.0",
+    "@basementuniverse/jsonpad-sdk": "^2.1.0",
     "commander": "^15.0.0"
   },
   "devDependencies": {
