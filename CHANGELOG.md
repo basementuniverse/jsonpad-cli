@@ -7,7 +7,7 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
-## [Unreleased]
+## [1.4.0] - 2026-09-18
 
 Needs `@basementuniverse/jsonpad-sdk` 2.1.0, and the JSONPad API release with
 identity email addresses, password reset and provider sign-in.
