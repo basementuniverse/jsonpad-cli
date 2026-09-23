@@ -7,6 +7,37 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
+## [1.5.0] - 2026-09-23
+
+Needs `@basementuniverse/jsonpad-sdk` 2.2.0, and the JSONPad API release with
+write rules.
+
+### Added
+
+- **`jsonpad rules`**, which uses the copy of the rules engine built into the
+  CLI, so it needs no network and costs no requests:
+  - `rules check` compiles a rule file and shows the checker's warnings, with
+    `--strict` to fail on them.
+  - `rules test` runs a rule set against its tests (`<name>.tests.json` by
+    default), with `--filter`, `--trace` and `--json`.
+  - `rules eval` checks one write and shows what each rule did.
+  - `rules test --list` and `rules eval --list` run the same checks through the
+    API, and warn when its rules engine isn't the one in this CLI.
+- **`jsonpad lists rules`**: `get` (with `--tests` and `--out`), `set` (from a
+  file, with `--tests`, `--remove` and `--skip-check`) and `denials`, which
+  lists the writes a list's rules have refused.
+- **Rule files in schema documents.** `rulesFile` and `rulesTestsFile` in a
+  list are read relative to the document and sent as `rules` and `rulesTests`,
+  so rule text lives in its own file in git. `sync-schema` compiles and tests
+  them before sending anything (`--skip-rule-tests` turns that off), and shows
+  a rule change as a line diff.
+- `export-schema --split-rules <directory>` writes each list's rules and tests
+  to their own files and references them from the document.
+- Exit code `9`, for write rule tests that fail and for a `rules eval` the
+  rules refuse.
+- `sync-schema` shows the diagnostics and failing tests the API reports for a
+  change, not just its message.
+
 ## [1.4.0] - 2026-09-18
 
 Needs `@basementuniverse/jsonpad-sdk` 2.1.0, and the JSONPad API release with

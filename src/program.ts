@@ -13,6 +13,7 @@ import { defineItems } from './commands/items.ts';
 import { defineListen } from './commands/listen.ts';
 import { defineLists } from './commands/lists.ts';
 import { defineRebuildIndex } from './commands/rebuild-index.ts';
+import { defineRules } from './commands/rules.ts';
 import { defineExportSchema } from './commands/schema/export.ts';
 import { defineMoveLists } from './commands/schema/move.ts';
 import { defineSyncSchema } from './commands/schema/sync.ts';
@@ -55,6 +56,7 @@ export const EXIT_CODES_HELP = `Exit codes:
   7  The token isn't allowed to do this, or isn't valid
   8  Rate limited (after retrying), or a plan limit or the monthly quota was
      reached
+  9  Write rule tests failed, or a rules check refused a write
 
 The schema commands and rebuild-index (and indexes rebuild) exit with 1 for
 every API error, as they did in @basementuniverse/jsonpad-sdk.`;
@@ -120,6 +122,8 @@ export function createProgram(context: Context): Command {
   defineIndexes(program.command('indexes'), context);
   defineItems(program.command('items'), context);
   defineIdentities(program.command('identities'), context);
+
+  defineRules(program.command('rules'), context);
 
   defineWhoami(program.command('whoami'), context);
   defineConfig(program.command('config'), context);

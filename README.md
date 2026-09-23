@@ -279,6 +279,60 @@ The schema commands are also available as `jsonpad schema sync`,
 Run `jsonpad --help`, or `jsonpad <command> --help`, for every option. The full
 command reference is in [REFERENCE.md](REFERENCE.md).
 
+### Write rules
+
+A list's [write rules](https://jsonpad.io/docs/write-rules) check every item
+write made with an API token. The CLI has its own copy of the rules engine, so
+checking and testing rules needs no network and doesn't count against your
+request allowance.
+
+```bash
+# Check that a rule file compiles, and show the checker's warnings
+jsonpad rules check rules/games.rules
+
+# Run its tests (rules/games.tests.json unless another file is given)
+jsonpad rules test rules/games.rules
+jsonpad rules test rules/games.rules --filter timeout --trace
+
+# Try one write, and see what each rule did
+jsonpad rules eval rules/games.rules --action update \
+  --old @before.json --merge '{"status":"sent"}' \
+  --token '{"id":"t","tags":["writer"]}'
+
+# The same checks through the API, which always has the final say
+jsonpad rules test --list games
+jsonpad rules eval --list games --action delete --item 098e58bc --identity-id 3e3ce22b
+
+# Read and write a list's rules
+jsonpad lists rules get games --out rules/games.rules
+jsonpad lists rules set games rules/games.rules --tests rules/games.tests.json
+jsonpad lists rules set games --remove
+
+# See the writes the rules have refused, and why
+jsonpad lists rules denials games
+```
+
+A rule set's rules and tests live in git alongside the schema document, which
+points at them:
+
+```json
+{
+  "lists": {
+    "games": {
+      "name": "Games",
+      "indexable": true,
+      "rulesFile": "rules/games.rules",
+      "rulesTestsFile": "rules/games.tests.json"
+    }
+  }
+}
+```
+
+`jsonpad sync-schema` reads those files, compiles the rules and runs their
+tests before it sends anything, so a mistake costs no requests
+(`--skip-rule-tests` turns that off). `jsonpad export-schema --split-rules
+rules --out jsonpad-schema.json` writes them back out the same way.
+
 ### Output
 
 Commands that output records print a table in a terminal, and JSON when their
@@ -337,6 +391,11 @@ press Tab.
 ## Continuous integration
 
 ```yaml
+# Write rules are checked and tested without touching the API, so this needs
+# no token and costs no requests
+- name: Test the write rules
+  run: npx @basementuniverse/jsonpad-cli rules test rules/games.rules
+
 - name: Sync the JSONPad schema
   run: npx @basementuniverse/jsonpad-cli sync-schema --wait
   env:
@@ -356,6 +415,7 @@ press Tab.
 | `6`  | Not found                                                               |
 | `7`  | The token isn't allowed to do this, or isn't valid                      |
 | `8`  | Rate limited (after retrying), or a plan limit or the quota was reached |
+| `9`  | Write rule tests failed, or a rules check refused a write               |
 
 A dry run exits the same way the real sync would.
 

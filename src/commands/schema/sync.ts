@@ -10,6 +10,11 @@ import {
   EXIT_REBUILD_NOT_ALLOWED,
 } from '../../errors.ts';
 import { parseTimeout, waitForIndexes } from '../../indexes.ts';
+import {
+  checkDocumentRules,
+  printRuleDiff,
+  resolveRuleFiles,
+} from '../../rules.ts';
 import { formatValue, plural } from '../../output.ts';
 import type {
   SyncSchemaChange,
@@ -21,6 +26,7 @@ export const DEFAULT_SCHEMA_FILE = 'jsonpad-schema.json';
 
 type SyncSchemaOptions = {
   dryRun?: boolean;
+  skipRuleTests?: boolean;
   allowRebuild?: boolean;
   prune?: boolean;
   allowDestructive?: boolean;
@@ -55,6 +61,10 @@ export function defineSyncSchema(command: Command, context: Context): Command {
       'How long --wait waits for each index (default 600)'
     )
     .option('--show-unchanged', "Also list resources that don't change")
+    .option(
+      '--skip-rule-tests',
+      "Don't compile and test write rules here first (the API always checks them)"
+    )
     .option('--json', "Print the API's response as JSON")
     .action((file: string, options: SyncSchemaOptions) =>
       syncSchema(context, file, options)
@@ -105,6 +115,13 @@ function printChange(context: Context, change: SyncSchemaChange) {
   );
 
   for (const [field, { from, to }] of Object.entries(change.fields || {})) {
+    // Rule text is usually many lines, so it's shown as a diff
+    if (field === 'rules') {
+      context.log(`    ${field}:`);
+      printRuleDiff(context, from as string | null, to as string | null);
+      continue;
+    }
+
     context.log(
       change.action === 'create'
         ? `    ${field}: ${formatValue(to)}`
@@ -118,6 +135,29 @@ function printChange(context: Context, change: SyncSchemaChange) {
 
   for (const error of change.errors || []) {
     context.log(`    ${red('error')}: ${error.message}`);
+
+    // Write rules that don't compile, and rule tests that failed
+    for (const diagnostic of (error.details?.diagnostics ?? []) as {
+      severity: string;
+      message: string;
+      span: { line: number; column: number };
+    }[]) {
+      if (diagnostic.severity === 'error') {
+        context.log(
+          `      ${dim(`rules:${diagnostic.span.line}:${diagnostic.span.column}`)} ${diagnostic.message}`
+        );
+      }
+    }
+
+    for (const failure of (error.details?.failures ?? []) as {
+      name: string;
+      actual: string;
+      message: string | null;
+    }[]) {
+      context.log(
+        `      ${red('✗')} ${failure.name} ${dim(`(${failure.actual}${failure.message ? `: ${failure.message}` : ''})`)}`
+      );
+    }
   }
 }
 
@@ -156,6 +196,14 @@ export async function syncSchema(
         ? `Can't find ${file}`
         : `Can't read ${file}: ${error.message}`
     );
+  }
+
+  resolveRuleFiles(context, document, file);
+
+  // Rules and their tests are checked here first, so a mistake costs no
+  // requests. The API checks them again, and has the final say
+  if (!options.skipRuleTests) {
+    checkDocumentRules(context, document);
   }
 
   const jsonpad = context.createClient();

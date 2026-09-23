@@ -19,6 +19,9 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 - [`jsonpad lists update`](#jsonpad-lists-update): Change a list. Fields that aren't given are left as they are
 - [`jsonpad lists delete`](#jsonpad-lists-delete): Delete a list. Its items and indexes are deleted in the background
 - [`jsonpad lists search`](#jsonpad-lists-search): Search a list's items, using the indexes that allow searching
+- [`jsonpad lists rules get`](#jsonpad-lists-rules-get): Show a list's write rules
+- [`jsonpad lists rules set`](#jsonpad-lists-rules-set): Set a list's write rules from a file
+- [`jsonpad lists rules denials`](#jsonpad-lists-rules-denials): The most recent writes the list's rules refused, newest first
 - [`jsonpad lists stats`](#jsonpad-lists-stats): Show a list's stats: its items, indexes and events, by day
 - [`jsonpad lists events`](#jsonpad-lists-events): List a list's events, newest first by default
 - [`jsonpad lists event`](#jsonpad-lists-event): Show one of a list's events
@@ -69,6 +72,9 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 - [`jsonpad identities stats`](#jsonpad-identities-stats): Show an identity's events, by day
 - [`jsonpad identities events`](#jsonpad-identities-events): List an identity's events, newest first by default
 - [`jsonpad identities event`](#jsonpad-identities-event): Show one of an identity's events
+- [`jsonpad rules check`](#jsonpad-rules-check): Check that a rule file compiles, and show the checker's warnings
+- [`jsonpad rules test`](#jsonpad-rules-test): Run a rule set against its tests
+- [`jsonpad rules eval`](#jsonpad-rules-eval): Check one write against a rule set, and show what each rule did
 - [`jsonpad whoami`](#jsonpad-whoami): Show the token you're using, its plan's limits and usage
 - [`jsonpad config set-profile`](#jsonpad-config-set-profile): Add or update a profile
 - [`jsonpad config use`](#jsonpad-config-use): Choose the default profile
@@ -99,6 +105,7 @@ jsonpad sync-schema [options] [file]
 | `--wait` | Wait for index builds to finish |
 | `--timeout <seconds>` | How long --wait waits for each index (default 600) |
 | `--show-unchanged` | Also list resources that don't change |
+| `--skip-rule-tests` | Don't compile and test write rules here first (the API always checks them) |
 | `--json` | Print the API's response as JSON |
 
 ### `jsonpad export-schema`
@@ -115,6 +122,7 @@ jsonpad export-schema [options]
 | `--tagged <tags>` | Only lists with one of these comma-separated tags (repeat the option to require every group) |
 | `--lists <path names>` | Only these comma-separated lists |
 | `--out <file>` | Write the document to a file, not stdout |
+| `--split-rules <directory>` | Write each list's write rules and rule tests to their own files in this directory, and reference them from the document (needs --out) |
 
 ### `jsonpad move-lists`
 
@@ -325,6 +333,60 @@ jsonpad lists search [options] <list> <query>
 | `--include-items` | Include the items, not just their ids |
 | `--include-data` | With --include-items, include each item's data |
 | `--include-guarded` | Include guarded values in the item data, for items the identity making the request owns |
+| `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
+| `--json` | Output JSON (the same as --output json) |
+| `-q, --quiet` | Only output ids (the same as --output id) |
+
+### `jsonpad lists rules get`
+
+Show a list's write rules
+
+```
+jsonpad lists rules get [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
+| `--tests` | Show the rule tests instead of the rules |
+| `-o, --out <file>` | Write to a file, not stdout |
+
+### `jsonpad lists rules set`
+
+Set a list's write rules from a file
+
+```
+jsonpad lists rules set [options] <list> [file]
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+| `file` (optional) | The rule file, or - for stdin |
+
+| Option | Description |
+| --- | --- |
+| `--tests <file>` | Also set the rule tests from this file |
+| `--remove` | Remove the list's rules |
+| `--skip-check` | Don't compile and test the rules here first (the API always checks them) |
+
+### `jsonpad lists rules denials`
+
+The most recent writes the list's rules refused, newest first
+
+```
+jsonpad lists rules denials [options] <list>
+```
+
+| Argument | Description |
+| --- | --- |
+| `list` | The list (id or path name) |
+
+| Option | Description |
+| --- | --- |
 | `-o, --output <format>` | Output format (default: table in a terminal, otherwise json) (one of: table, json, ndjson, id) |
 | `--json` | Output JSON (the same as --output json) |
 | `-q, --quiet` | Only output ids (the same as --output id) |
@@ -1387,6 +1449,72 @@ jsonpad identities event [options] <identity> <event>
 | `--json` | Output JSON (the same as --output json) |
 | `-q, --quiet` | Only output ids (the same as --output id) |
 
+### `jsonpad rules check`
+
+Check that a rule file compiles, and show the checker's warnings
+
+```
+jsonpad rules check [options] <file>
+```
+
+| Argument | Description |
+| --- | --- |
+| `file` | The rule file |
+
+| Option | Description |
+| --- | --- |
+| `--strict` | Fail if there are any warnings |
+
+### `jsonpad rules test`
+
+Run a rule set against its tests
+
+```
+jsonpad rules test [options] [rules] [tests]
+```
+
+| Argument | Description |
+| --- | --- |
+| `rules` (optional) | The rule file (not needed with --list) |
+| `tests` (optional) | The test file (default: the rule file with .tests.json, or the list's stored tests with --list) |
+
+| Option | Description |
+| --- | --- |
+| `--rules <file>` | The rule file to test against --list |
+| `--list <list>` | Test against the API, using the list's stored rules and tests unless they're given |
+| `--filter <text>` | Only tests whose name contains this text |
+| `--trace` | Show how each rule was evaluated for a failing test |
+| `--json` | Print the results as JSON |
+
+### `jsonpad rules eval`
+
+Check one write against a rule set, and show what each rule did
+
+```
+jsonpad rules eval [options] [rules]
+```
+
+| Argument | Description |
+| --- | --- |
+| `rules` (optional) | The rule file (not needed with --list) |
+
+| Option | Description |
+| --- | --- |
+| `--action <action>` | What the write does: create, update, delete, restore |
+| `--list <list>` | Use the list's stored rules, and check with the API |
+| `--item <item>` | Take the old data from this item (needs --list) |
+| `--old <json>` | The data before the write (@file, - for stdin) |
+| `--new <json>` | The data after the write (@file, - for stdin) |
+| `--patch <json>` | A JSON Patch applied to the old data |
+| `--merge <json>` | A JSON merge patch applied to the old data |
+| `--identity <json>` | The identity making the write |
+| `--identity-id <id>` | An existing identity making the write (needs --list) |
+| `--token <json>` | The token making the write, e.g. '{"tags":["writer"]}' |
+| `--now <date>` | The time of the write (ISO 8601) |
+| `--pointer <pointer>` | The JSON pointer, for writes to part of an item |
+| `--trace` | Show every expression that was evaluated |
+| `--json` | Print the result as JSON |
+
 ### `jsonpad whoami`
 
 Show the token you're using: what it can do, its plan's limits, and the account's usage this month
@@ -1546,6 +1674,7 @@ JSONPAD_TOKEN, then the default profile.
 7  The token isn't allowed to do this, or isn't valid
 8  Rate limited (after retrying), or a plan limit or the monthly quota was
    reached
+9  Write rule tests failed, or a rules check refused a write
 
 The schema commands and rebuild-index (and indexes rebuild) exit with 1 for
 every API error, as they did in @basementuniverse/jsonpad-sdk.

@@ -1,7 +1,15 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type { Command } from 'commander';
 import type { Context } from '../context.ts';
 import { CliError } from '../errors.ts';
-import { canPrompt, confirm, readJsonInput } from '../input.ts';
+import { canPrompt, confirm, readJsonInput, readStdin } from '../input.ts';
+import {
+  compileRules,
+  readJsonFile,
+  readTextFile,
+  runRuleTests,
+} from '../rules.ts';
 import {
   addOutputOptions,
   formatFlags,
@@ -28,7 +36,7 @@ import {
   type AllOptions,
   type PagingOptions,
 } from '../resources.ts';
-import type { List, SearchResult } from '../sdk.ts';
+import type { List, SearchResult, WriteRuleDenial } from '../sdk.ts';
 import { defineEventCommands, defineStatsCommand } from './history.ts';
 
 const FLAGS = [
@@ -84,6 +92,19 @@ export function listDetails(context: Context, list: List): [string, string][] {
     ['Tags', list.tags?.length ? list.tags.join(', ') : dim('(none)')],
     ['Items', formatNumber(list.itemCount ?? 0)],
     ['Flags', formatFlags(list, [...FLAGS])],
+    // Only the account owner and tokens that can update the list see these
+    ...(list.rules !== undefined
+      ? ([
+          [
+            'Write rules',
+            list.rules
+              ? `${list.rules.split('\n').length} lines (jsonpad lists rules get ${
+                  list.pathName || list.id
+                })`
+              : dim('(none)'),
+          ],
+        ] as [string, string][])
+      : []),
   ];
 
   if (list.generative) {
@@ -174,6 +195,151 @@ async function listBody(context: Context, options: ListFields) {
     generativePrompt: nullable(options.generativePrompt),
     ...Object.fromEntries(FLAGS.map(flag => [flag, options[flag]])),
   });
+}
+
+/**
+ * jsonpad lists rules: read and write a list's write rules
+ */
+function defineListRules(command: Command, context: Context): Command {
+  command.description("Read and write a list's write rules");
+
+  command
+    .command('get', { isDefault: true })
+    .description("Show a list's write rules")
+    .argument('<list>', 'The list (id or path name)')
+    .option('--tests', 'Show the rule tests instead of the rules')
+    .option('-o, --out <file>', 'Write to a file, not stdout')
+    .action(
+      async (listId: string, options: { tests?: boolean; out?: string }) => {
+        const jsonpad = context.createClient();
+        const list = await request(context, () => jsonpad.fetchList(listId));
+
+        if (list.rules === undefined) {
+          throw new CliError(
+            "This token can't see the list's write rules: it needs permission to update the list"
+          );
+        }
+
+        const text = options.tests
+          ? list.rulesTests
+            ? `${JSON.stringify(list.rulesTests, null, 2)}\n`
+            : ''
+          : list.rules
+            ? `${list.rules.replace(/\n?$/, '\n')}`
+            : '';
+
+        if (!text) {
+          context.error(
+            `List ${listId} has no write rule${options.tests ? ' tests' : 's'}`
+          );
+          return;
+        }
+
+        if (options.out) {
+          fs.writeFileSync(path.resolve(context.cwd, options.out), text);
+          context.error(`Wrote ${options.out}`);
+          return;
+        }
+
+        context.stdout.write(text);
+      }
+    );
+
+  command
+    .command('set')
+    .description("Set a list's write rules from a file")
+    .argument('<list>', 'The list (id or path name)')
+    .argument('[file]', 'The rule file, or - for stdin')
+    .option('--tests <file>', 'Also set the rule tests from this file')
+    .option('--remove', "Remove the list's rules")
+    .option(
+      '--skip-check',
+      "Don't compile and test the rules here first (the API always checks them)"
+    )
+    .action(
+      async (
+        listId: string,
+        file: string | undefined,
+        options: { tests?: string; remove?: boolean; skipCheck?: boolean }
+      ) => {
+        if (!file && !options.remove && !options.tests) {
+          throw new CliError('Give a rule file, --tests or --remove');
+        }
+
+        const rules = options.remove
+          ? null
+          : file
+            ? file === '-'
+              ? await readStdin(context)
+              : readTextFile(context, file, 'the rule file')
+            : undefined;
+        const tests = options.tests
+          ? (readJsonFile(context, options.tests, 'the test file') as Record<
+              string,
+              any
+            >)
+          : undefined;
+
+        // Checked here first, so a mistake costs no requests
+        if (!options.skipCheck && rules) {
+          const ruleSet = compileRules(context, rules, file ?? 'the rules');
+          if (tests) {
+            runRuleTests(context, ruleSet, tests, options.tests!);
+          }
+        }
+
+        const jsonpad = context.createClient();
+        const list = await request(context, () =>
+          jsonpad.updateList(listId, {
+            ...(rules === undefined ? {} : { rules }),
+            ...(tests === undefined ? {} : { rulesTests: tests }),
+          } as Partial<List>)
+        );
+
+        context.error(
+          rules === null
+            ? `Removed the write rules from ${list.pathName || list.id}`
+            : `Saved the write rules on ${list.pathName || list.id}`
+        );
+      }
+    );
+
+  addOutputOptions(
+    command
+      .command('denials')
+      .description(
+        "The most recent writes the list's rules refused, newest first"
+      )
+      .argument('<list>', 'The list (id or path name)')
+  ).action(async (listId: string, options: OutputOptions) => {
+    const format = resolveOutputFormat(context, options);
+    const jsonpad = context.createClient();
+    const denials = await request(context, () =>
+      jsonpad.fetchListRuleDenials(listId)
+    );
+
+    printRecords<WriteRuleDenial>(context, format, denials, {
+      columns: [
+        { header: 'When', value: denial => formatTimestamp(denial.createdAt) },
+        { header: 'Operation', value: denial => denial.operation },
+        {
+          header: 'Refused by',
+          value: denial =>
+            denial.stage === 'allow'
+              ? 'no allow statement'
+              : `require${
+                  denial.statementLabel ? ` "${denial.statementLabel}"` : ''
+                } on line ${denial.statementLine}`,
+        },
+        { header: 'Identity', value: denial => denial.identityId ?? '' },
+        { header: 'Item', value: denial => denial.itemId ?? '' },
+      ],
+      empty: "The list's rules haven't refused any writes",
+      id: denial => denial.id,
+    });
+  });
+
+  return command;
 }
 
 export function defineLists(command: Command, context: Context): Command {
@@ -379,6 +545,8 @@ export function defineLists(command: Command, context: Context): Command {
       });
     }
   );
+
+  defineListRules(command.command('rules'), context);
 
   const target = {
     arguments: [['<list>', 'The list (id or path name)']] as [string, string][],

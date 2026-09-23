@@ -1,6 +1,6 @@
 {
   "name": "@basementuniverse/jsonpad-cli",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Command line tool for JSONPad",
   "author": "Gordon Larrigan <gordonlarrigan@gmail.com> (https://gordonlarrigan.com)",
   "license": "MIT",
@@ -39,7 +39,8 @@
   },
   "dependencies": {
     "@basementuniverse/jsonpad-realtime-sdk": "^1.6.0",
-    "@basementuniverse/jsonpad-sdk": "^2.1.0",
+    "@basementuniverse/jsonpad-rules": "^1.0.0",
+    "@basementuniverse/jsonpad-sdk": "^2.2.0",
     "commander": "^15.0.0"
   },
   "devDependencies": {
