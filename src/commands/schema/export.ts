@@ -10,6 +10,7 @@ type ExportSchemaOptions = {
   lists?: string;
   out?: string;
   splitRules?: string;
+  splitFlows?: string;
 };
 
 const collect = (value: string, previous: string[] = []) => [
@@ -34,6 +35,10 @@ export function defineExportSchema(
     .option(
       '--split-rules <directory>',
       "Write each list's write rules and rule tests to their own files in this directory, and reference them from the document (needs --out)"
+    )
+    .option(
+      '--split-flows <directory>',
+      'Write each flow and its tests to their own files in this directory (name.flow.json and name.tests.json), and reference them from the document (needs --out)'
     )
     .action((options: ExportSchemaOptions) => exportSchema(context, options));
 }
@@ -66,6 +71,10 @@ export async function exportSchema(
 
   if (options.splitRules) {
     splitRules(context, result.document, options);
+  }
+
+  if (options.splitFlows) {
+    splitFlows(context, result.document, options);
   }
 
   const json = `${JSON.stringify(result.document, null, 2)}\n`;
@@ -134,5 +143,54 @@ function splitRules(
 
   context.error(
     `Wrote ${written} rule ${written === 1 ? 'file' : 'files'} to ${options.splitRules}`
+  );
+}
+
+/**
+ * Move each flow's document and tests out of the schema document and into
+ * their own files, which the schema document then points at with flowFile
+ * and flowTestsFile
+ */
+function splitFlows(
+  context: Context,
+  document: { flows?: Record<string, Record<string, any>> },
+  options: ExportSchemaOptions
+): void {
+  if (!options.out) {
+    throw new CliError('--split-flows needs --out');
+  }
+
+  const directory = path.resolve(context.cwd, options.splitFlows!);
+  const documentDirectory = path.dirname(
+    path.resolve(context.cwd, options.out)
+  );
+  const reference = (file: string) =>
+    path.relative(documentDirectory, file).split(path.sep).join('/');
+  let written = 0;
+
+  fs.mkdirSync(directory, { recursive: true });
+
+  for (const [name, flow] of Object.entries(document.flows ?? {})) {
+    if (flow.document) {
+      const file = path.join(directory, `${name}.flow.json`);
+      fs.writeFileSync(file, `${JSON.stringify(flow.document, null, 2)}\n`);
+      delete flow.document;
+      flow.flowFile = reference(file);
+      written++;
+    }
+
+    if (flow.tests) {
+      const file = path.join(directory, `${name}.tests.json`);
+      fs.writeFileSync(file, `${JSON.stringify(flow.tests, null, 2)}\n`);
+      delete flow.tests;
+      flow.flowTestsFile = reference(file);
+      written++;
+    } else {
+      delete flow.tests;
+    }
+  }
+
+  context.error(
+    `Wrote ${written} flow ${written === 1 ? 'file' : 'files'} to ${options.splitFlows}`
   );
 }

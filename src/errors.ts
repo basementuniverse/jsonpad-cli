@@ -10,6 +10,8 @@ export const EXIT_NOT_FOUND = 6;
 export const EXIT_PERMISSION_DENIED = 7;
 export const EXIT_LIMIT_REACHED = 8;
 export const EXIT_RULE_TESTS_FAILED = 9;
+export const EXIT_TESTS_FAILED = EXIT_RULE_TESTS_FAILED;
+export const EXIT_FLOW_FAILED = 10;
 export const EXIT_INTERRUPTED = 130;
 
 /**

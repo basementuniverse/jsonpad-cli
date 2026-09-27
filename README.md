@@ -402,6 +402,53 @@ press Tab.
     JSONPAD_TOKEN: ${{ secrets.JSONPAD_TOKEN }}
 ```
 
+### Flows
+
+[Flows](https://jsonpad.io/docs/flows) are small programs drawn in the
+dashboard: endpoints your app calls, and steps that run when items change. The
+CLI has its own copy of the flows engine, so checking and testing a flow needs
+no network and doesn't count against your request allowance. Tests run against
+an in-memory copy of the items they declare.
+
+```bash
+# Check that a flow file compiles, and show the checker's warnings
+jsonpad flows check flows/deal-card.flow.json
+
+# Run its tests (flows/deal-card.tests.json unless another file is given)
+jsonpad flows test flows/deal-card.flow.json --trace
+
+# Call an endpoint flow (the token needs the run permission on it)
+jsonpad flows run deal-card --input '{"gameId":"g1"}'
+jsonpad flows run leaderboard --method GET --input '{"top":10}'
+
+# Call a public flow by its id, without a token
+jsonpad flows run 5b9d2c1e-7f0a-4c55-9d1e-3a6b8f2e4c10 --public
+```
+
+A flow that fails exits with `10`, and says why and at which node. Flows are
+created and updated with schema sync: declare them in the schema document, next
+to the lists they use.
+
+```json
+{
+  "scope": "cards",
+  "lists": { "games": {}, "decks": {}, "hands": {} },
+  "flows": {
+    "deal-card": {
+      "flowFile": "flows/deal-card.flow.json",
+      "flowTestsFile": "flows/deal-card.tests.json"
+    }
+  }
+}
+```
+
+`sync-schema` compiles and tests every flow before sending anything
+(`--skip-flow-tests` turns that off). Where the nodes sit in the dashboard is
+kept when a flow is updated, so moving them around there doesn't make the file
+out of date. `export-schema --split-flows flows` writes each flow and its tests
+to their own files. Syncing flows needs a token that is allowed everything,
+because a flow runs with your full privileges.
+
 ## Exit codes
 
 | Code | Meaning                                                                 |
@@ -415,7 +462,8 @@ press Tab.
 | `6`  | Not found                                                               |
 | `7`  | The token isn't allowed to do this, or isn't valid                      |
 | `8`  | Rate limited (after retrying), or a plan limit or the quota was reached |
-| `9`  | Write rule tests failed, or a rules check refused a write               |
+| `9`  | Write rule or flow tests failed, or a rules check refused a write       |
+| `10` | A flow failed (`flows run`)                                             |
 
 A dry run exits the same way the real sync would.
 

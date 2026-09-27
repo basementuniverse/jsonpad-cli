@@ -7,6 +7,37 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
+## [Unreleased]
+
+Needs `@basementuniverse/jsonpad-sdk` with `runFlow()` (the release after
+2.2.0), and the JSONPad API release with flows. `package.json` points at the
+SDK's local checkout (`file:../jsonpad-sdk-js`) until that's published.
+
+### Added
+
+- **`jsonpad flows`**, which checks and tests flows with the copy of the flows
+  engine built into the CLI (`@basementuniverse/jsonpad-flows` 1.0.0), so it
+  needs no network and costs no requests:
+  - `flows check` compiles a flow file and shows the checker's warnings, with
+    `--strict` to fail on them.
+  - `flows test` runs a flow's tests (`<name>.tests.json` by default) against
+    in-memory items, with `--filter`, `--trace` and `--json`.
+  - `flows run` calls an endpoint flow, with `--input`, `--method`, `--public`
+    and `--json`.
+- **Flows in schema documents.** `flowFile` and `flowTestsFile` are read
+  relative to the document and sent as `document` and `tests`. `sync-schema`
+  compiles and tests flows before sending anything (`--skip-flow-tests` turns
+  that off), and shows flow changes.
+- `export-schema --split-flows <directory>` writes each flow and its tests to
+  their own files and references them from the document.
+- Exit code `10`, for a flow that fails. Exit code `9` now also covers flow
+  tests that fail.
+
+### Changed
+
+- `@basementuniverse/jsonpad-rules` is now `^1.2.0`, the version the flows
+  engine needs, so there's one copy of it.
+
 ## [1.5.0] - 2026-09-23
 
 Needs `@basementuniverse/jsonpad-sdk` 2.2.0, and the JSONPad API release with

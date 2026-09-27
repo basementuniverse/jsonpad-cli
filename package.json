@@ -38,9 +38,10 @@
     "reference": "node scripts/generate-reference.ts"
   },
   "dependencies": {
+    "@basementuniverse/jsonpad-flows": "1.0.0",
     "@basementuniverse/jsonpad-realtime-sdk": "^1.6.0",
-    "@basementuniverse/jsonpad-rules": "^1.0.0",
-    "@basementuniverse/jsonpad-sdk": "^2.2.0",
+    "@basementuniverse/jsonpad-rules": "^1.2.0",
+    "@basementuniverse/jsonpad-sdk": "^2.3.0",
     "commander": "^15.0.0"
   },
   "devDependencies": {

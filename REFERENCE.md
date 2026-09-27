@@ -6,11 +6,11 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 
 ## Commands
 
-- [`jsonpad sync-schema`](#jsonpad-sync-schema): Create and update lists and indexes to match a schema document
+- [`jsonpad sync-schema`](#jsonpad-sync-schema): Create and update lists, indexes and flows to match a schema document
 - [`jsonpad export-schema`](#jsonpad-export-schema): Write a schema document for existing lists
 - [`jsonpad move-lists`](#jsonpad-move-lists): Move lists (by id or path name) to a scope, or release them from their scope
 - [`jsonpad rebuild-index`](#jsonpad-rebuild-index): Rebuild an index whose last build failed, once the problem has been fixed
-- [`jsonpad schema sync`](#jsonpad-schema-sync): Create and update lists and indexes to match a schema document
+- [`jsonpad schema sync`](#jsonpad-schema-sync): Create and update lists, indexes and flows to match a schema document
 - [`jsonpad schema export`](#jsonpad-schema-export): Write a schema document for existing lists
 - [`jsonpad schema move`](#jsonpad-schema-move): Move lists (by id or path name) to a scope, or release them from their scope
 - [`jsonpad lists list`](#jsonpad-lists-list): List lists (the default when no command is given)
@@ -75,6 +75,9 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 - [`jsonpad rules check`](#jsonpad-rules-check): Check that a rule file compiles, and show the checker's warnings
 - [`jsonpad rules test`](#jsonpad-rules-test): Run a rule set against its tests
 - [`jsonpad rules eval`](#jsonpad-rules-eval): Check one write against a rule set, and show what each rule did
+- [`jsonpad flows check`](#jsonpad-flows-check): Check that a flow file compiles, and show the checker's warnings
+- [`jsonpad flows test`](#jsonpad-flows-test): Run a flow's tests, against an in-memory copy of your data
+- [`jsonpad flows run`](#jsonpad-flows-run): Call an endpoint flow, e.g. jsonpad flows run create-order --input '{"productId":"p1"}'
 - [`jsonpad whoami`](#jsonpad-whoami): Show the token you're using, its plan's limits and usage
 - [`jsonpad config set-profile`](#jsonpad-config-set-profile): Add or update a profile
 - [`jsonpad config use`](#jsonpad-config-use): Choose the default profile
@@ -86,7 +89,7 @@ Run `jsonpad <command> --help` for the same information in a terminal.
 
 ### `jsonpad sync-schema`
 
-Create and update lists and indexes to match a schema document
+Create and update lists, indexes and flows to match a schema document
 
 ```
 jsonpad sync-schema [options] [file]
@@ -106,6 +109,7 @@ jsonpad sync-schema [options] [file]
 | `--timeout <seconds>` | How long --wait waits for each index (default 600) |
 | `--show-unchanged` | Also list resources that don't change |
 | `--skip-rule-tests` | Don't compile and test write rules here first (the API always checks them) |
+| `--skip-flow-tests` | Don't compile and test flows here first (the API always checks them) |
 | `--json` | Print the API's response as JSON |
 
 ### `jsonpad export-schema`
@@ -123,6 +127,7 @@ jsonpad export-schema [options]
 | `--lists <path names>` | Only these comma-separated lists |
 | `--out <file>` | Write the document to a file, not stdout |
 | `--split-rules <directory>` | Write each list's write rules and rule tests to their own files in this directory, and reference them from the document (needs --out) |
+| `--split-flows <directory>` | Write each flow and its tests to their own files in this directory (name.flow.json and name.tests.json), and reference them from the document (needs --out) |
 
 ### `jsonpad move-lists`
 
@@ -1515,6 +1520,60 @@ jsonpad rules eval [options] [rules]
 | `--trace` | Show every expression that was evaluated |
 | `--json` | Print the result as JSON |
 
+### `jsonpad flows check`
+
+Check that a flow file compiles, and show the checker's warnings
+
+```
+jsonpad flows check [options] <file>
+```
+
+| Argument | Description |
+| --- | --- |
+| `file` | The flow file (a JSON flow document) |
+
+| Option | Description |
+| --- | --- |
+| `--strict` | Fail if there are any warnings |
+
+### `jsonpad flows test`
+
+Run a flow's tests, against an in-memory copy of your data
+
+```
+jsonpad flows test [options] <file> [tests]
+```
+
+| Argument | Description |
+| --- | --- |
+| `file` | The flow file |
+| `tests` (optional) | The test file (default: the flow file with .tests.json, e.g. deal-card.flow.json and deal-card.tests.json) |
+
+| Option | Description |
+| --- | --- |
+| `--filter <text>` | Only tests whose name contains this text |
+| `--trace` | Show every node of a failing test |
+| `--json` | Print the results as JSON |
+
+### `jsonpad flows run`
+
+Call an endpoint flow, e.g. jsonpad flows run create-order --input '{"productId":"p1"}'
+
+```
+jsonpad flows run [options] <path>
+```
+
+| Argument | Description |
+| --- | --- |
+| `path` | The flow's endpoint path, or its id with --public |
+
+| Option | Description |
+| --- | --- |
+| `--input <json>` | The input (the request body, or the query parameters for GET), as JSON (@file, - for stdin) |
+| `--method <method>` | GET, POST, PUT, PATCH, DELETE (default POST) |
+| `--public` | Call a public flow by its id, without a token |
+| `--json` | Print the status, body and run id as JSON |
+
 ### `jsonpad whoami`
 
 Show the token you're using: what it can do, its plan's limits, and the account's usage this month
@@ -1674,7 +1733,8 @@ JSONPAD_TOKEN, then the default profile.
 7  The token isn't allowed to do this, or isn't valid
 8  Rate limited (after retrying), or a plan limit or the monthly quota was
    reached
-9  Write rule tests failed, or a rules check refused a write
+9  Write rule or flow tests failed, or a rules check refused a write
+10 A flow failed (flows run)
 
 The schema commands and rebuild-index (and indexes rebuild) exit with 1 for
 every API error, as they did in @basementuniverse/jsonpad-sdk.

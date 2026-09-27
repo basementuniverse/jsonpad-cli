@@ -10,6 +10,7 @@ import {
   EXIT_REBUILD_NOT_ALLOWED,
 } from '../../errors.ts';
 import { parseTimeout, waitForIndexes } from '../../indexes.ts';
+import { checkDocumentFlows, resolveFlowFiles } from '../../flows.ts';
 import {
   checkDocumentRules,
   printRuleDiff,
@@ -27,6 +28,7 @@ export const DEFAULT_SCHEMA_FILE = 'jsonpad-schema.json';
 type SyncSchemaOptions = {
   dryRun?: boolean;
   skipRuleTests?: boolean;
+  skipFlowTests?: boolean;
   allowRebuild?: boolean;
   prune?: boolean;
   allowDestructive?: boolean;
@@ -39,7 +41,7 @@ type SyncSchemaOptions = {
 export function defineSyncSchema(command: Command, context: Context): Command {
   return command
     .description(
-      'Create and update lists and indexes to match a schema document'
+      'Create and update lists, indexes and flows to match a schema document'
     )
     .argument('[file]', 'The schema document', DEFAULT_SCHEMA_FILE)
     .option('--dry-run', 'Show what would change, without changing it')
@@ -65,6 +67,10 @@ export function defineSyncSchema(command: Command, context: Context): Command {
       '--skip-rule-tests',
       "Don't compile and test write rules here first (the API always checks them)"
     )
+    .option(
+      '--skip-flow-tests',
+      "Don't compile and test flows here first (the API always checks them)"
+    )
     .option('--json', "Print the API's response as JSON")
     .action((file: string, options: SyncSchemaOptions) =>
       syncSchema(context, file, options)
@@ -83,9 +89,11 @@ function printChange(context: Context, change: SyncSchemaChange) {
   };
 
   const name =
-    change.resourceType === 'list'
-      ? `list ${bold(change.list)}`
-      : `index ${bold(`${change.list}/${change.index}`)}`;
+    change.resourceType === 'flow'
+      ? `flow ${bold(change.flow!)}`
+      : change.resourceType === 'list'
+        ? `list ${bold(change.list!)}`
+        : `index ${bold(`${change.list}/${change.index}`)}`;
   const action = change.action === 'no-change' ? 'no change' : change.action;
   const build = change.build
     ? dim(
@@ -199,11 +207,15 @@ export async function syncSchema(
   }
 
   resolveRuleFiles(context, document, file);
+  resolveFlowFiles(context, document, file);
 
   // Rules and their tests are checked here first, so a mistake costs no
   // requests. The API checks them again, and has the final say
   if (!options.skipRuleTests) {
     checkDocumentRules(context, document);
+  }
+  if (!options.skipFlowTests) {
+    await checkDocumentFlows(context, document);
   }
 
   const jsonpad = context.createClient();
