@@ -7,7 +7,7 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Dates are npm publish dates.
 
-## [Unreleased]
+## [1.6.0] - 2026-09-27
 
 Needs `@basementuniverse/jsonpad-sdk` with `runFlow()` (the release after
 2.2.0), and the JSONPad API release with flows. `package.json` points at the
